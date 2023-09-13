@@ -1,1 +1,4 @@
 .idea/
+venv/
+compressimages.iml
+.DS_Store
