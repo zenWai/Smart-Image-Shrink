@@ -2,3 +2,6 @@
 venv/
 compressimages.iml
 .DS_Store
+build/
+dist/
+new_venv_universal2/
