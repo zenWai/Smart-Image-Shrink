@@ -2,8 +2,8 @@
 This script provides a GUI for compressing images in a selected source directory and saving them in a specified destination directory. The image resizing threshold is set at a width of 1080 pixels with max quality and will mantain the aspect ratio. The script supports .png, .jpg, .jpeg, .tif, and .tiff file formats.
 
 <div style="display: flex; justify-content: space-between;">
-    <img src="https://github.com/zenWai/CompressImages-python/assets/124523559/05d8d8fb-26e5-4901-acc9-170aa29d43e5" alt="Compress images preview image" width="450"/>
-    <img src="https://github.com/zenWai/CompressImages-python/assets/124523559/7f61cc54-b3dd-4656-bcf7-b45da90c41a6" alt="logTXT of compressed images" width="450"/>
+    <img src="https://github.com/zenWai/CompressImages-python/assets/124523559/d49f36f4-82dc-4c5e-9232-a2553fe97ca7" alt="Compress images preview image" width="450"/>
+    <img src="https://github.com/zenWai/CompressImages-python/assets/124523559/f0f99b5a-1831-4155-b5a4-4477075bf4d4" alt="logTXT of compressed images" width="450"/>
 </div>
 
 # Using the Application
