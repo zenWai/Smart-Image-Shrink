@@ -4,6 +4,7 @@ from PIL import Image
 import wx
 import sys
 import subprocess
+import wx.adv
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -300,10 +301,45 @@ class CompressorApp(wx.Frame):
         self.compression_choice = wx.Choice(self.panel, choices=COMPRESSION_OPTIONS, pos=(500, 50))
         self.compression_choice.SetSelection(0)  # Set default selection to the first option
 
+        # Load standard gif icon and loading animation gif
+        self.github_icon_path = os.path.join(base_path, 'github_icon.gif')
+        self.github_loading_path = os.path.join(base_path, 'github_loading.gif')
+
+        self.standard_animation = wx.adv.Animation(self.github_icon_path)
+        self.loading_animation = wx.adv.Animation(self.github_loading_path)
+
+        self.gif_ctrl = wx.adv.AnimationCtrl(self.panel, -1, self.standard_animation)
+        self.gif_ctrl.Play()
+
+        # Initially position the GIF control; will be updated in the on_resize method
+        self.on_resize(None)  # Call once to set the initial position
+
+        # Bind the gif control to the GitHub link click event
+        self.gif_ctrl.Bind(wx.EVT_LEFT_DOWN, self.on_github_icon_click)
+
         # Set the main sizer for the panel
         self.panel.SetSizer(main_sizer)
         self.Centre()
         self.Show(True)
+
+    def on_resize(self, event):
+        """Reposition the GitHub GIF when the window size changes."""
+        frame_width, frame_height = self.GetSize()
+        gif_width, gif_height = self.gif_ctrl.GetSize()
+        margin = 55  # Margin from the bottom and right edges
+        gif_position = (frame_width - gif_width - margin, frame_height - gif_height - margin)
+        self.gif_ctrl.SetPosition(gif_position)
+
+        if event:  # Check if the event exists to avoid errors on initial call
+            self.update_background(event)  # Update the background image as well
+
+    def set_gif_animation(self, mode):
+        """Swap the animation based on the mode."""
+        if mode == 'standard':
+            self.gif_ctrl.SetAnimation(self.standard_animation)
+        elif mode == 'loading':
+            self.gif_ctrl.SetAnimation(self.loading_animation)
+        self.gif_ctrl.Play()
 
     def on_paint(self, event):
         """Paint the background image."""
@@ -317,6 +353,15 @@ class CompressorApp(wx.Frame):
 
         # Draw the bitmap onto the panel
         dc.DrawBitmap(bmp, 0, 0, True)
+
+    def on_github_icon_click(self, event):
+        github_url = "https://github.com/zenWai/CompressImages-python"
+        if sys.platform == 'win32':
+            os.startfile(github_url)
+        elif sys.platform == 'darwin':
+            subprocess.call(['open', github_url])
+        else:
+            subprocess.call(['xdg-open', github_url])
 
     class TextRedirector:
         """A helper class to redirect the stdout/stderr to the TextCtrl widget."""
@@ -368,9 +413,14 @@ class CompressorApp(wx.Frame):
                 # Get selected compression option
                 compression_option = self.compression_choice.GetString(self.compression_choice.GetSelection())
                 print(f"Starting the compression with option: {compression_option}!")
+                # Set the GIF to loading mode
+                self.set_gif_animation('loading')
                 wx.Yield()
+                # Processing images
                 log_file_path = process_directory(self.source_directory, self.destination_directory, compression_option)
 
+                # Completed, set the GIF back to standard mode
+                self.set_gif_animation('standard')
                 # Custom Message Box on completion
                 dlg = CustomDialog(self, title="Compression Completed", log_file_path=log_file_path,
                                    source_directory=self.source_directory,
