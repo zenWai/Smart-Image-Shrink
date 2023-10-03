@@ -5,3 +5,4 @@ compressimages.iml
 build/
 dist/
 new_venv_universal2/
+log.txt
