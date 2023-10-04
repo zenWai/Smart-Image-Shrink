@@ -464,7 +464,7 @@ class CompressorApp(wx.Frame):
 
     # User request Stop Button
     def request_stop(self, event):
-        print("Stopping... Please wait. When buttons are enabled the stop process is finished.")
+        print("\nStopping... Please wait. When buttons are enabled the stop process is finished.\n")
         self.stop_button.Disable()
         self.stop_requested = True
 
@@ -494,7 +494,7 @@ class CompressorApp(wx.Frame):
         # If compression was stopped prematurely
         if self.stop_requested:
             wx.CallAfter(self.console_output.AppendText, "Compression was stopped by the user. Compressed files might "
-                                                         "be corrupted due to interruption.\n")
+                                                         "be corrupted due to interruption.\n\n")
         else:
             # Show the custom dialog
             wx.CallAfter(self.show_completion_dialog, log_file_path)
