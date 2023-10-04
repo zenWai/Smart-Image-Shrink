@@ -7,3 +7,4 @@ dist/
 new_venv_universal2/
 log.txt
 compress_images_macOS_arm64.app
+compress_images_windows.exe
