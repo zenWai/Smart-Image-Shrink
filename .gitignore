@@ -6,3 +6,5 @@ build/
 dist/
 new_venv_universal2/
 log.txt
+/compress_images_macOS_arm64.app/Contents/_CodeSignature/CodeResources
+/compress_images_macOS_arm64.app/Contents/Info.plist

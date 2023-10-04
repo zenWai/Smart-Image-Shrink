@@ -1,10 +1,13 @@
 import os
 import shutil
-from PIL import Image
-import wx
-import sys
 import subprocess
+import sys
+import threading
+
+import wx
 import wx.adv
+from PIL import Image
+from wx.lib.delayedresult import startWorker
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -17,8 +20,9 @@ COMPRESSION_OPTIONS = [
 ]
 
 
+# using base of 1000 instead of Mebibytes 1024 (MiB)
 def bytes_to_mb(size_in_bytes):
-    return size_in_bytes / (1024 * 1024)
+    return size_in_bytes / (1000 * 1000)
 
 
 def compress_image(img_path, compression_option):
@@ -73,51 +77,6 @@ def get_new_filename(img_path, compression_option):
     else:
         new_name = base + '_compressed' + ext
     return new_name
-
-
-def process_directory(src_dir, dest_dir, compression_option):
-    if os.path.exists(dest_dir):
-        shutil.rmtree(dest_dir)
-    shutil.copytree(src_dir, dest_dir)
-
-    num_files_processed = 0
-    num_files_compressed = 0
-    total_saved_size = 0
-    log_entries = []
-
-    for root, _, files in os.walk(dest_dir):
-        for file in files:
-            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff')):
-                img_path = os.path.join(root, file)
-                initial_size, final_size = compress_image(img_path, compression_option)
-
-                if initial_size > final_size:
-                    num_files_compressed += 1
-
-                saved_size = initial_size - final_size
-                total_saved_size += saved_size
-                num_files_processed += 1
-
-                new_name = get_new_filename(img_path, compression_option)
-                os.rename(img_path, new_name)
-
-                # Logging info for each file
-                log_entry = f"{new_name} with {bytes_to_mb(initial_size):.2f} MB now with {bytes_to_mb(final_size):.2f} MB, saved {bytes_to_mb(saved_size):.2f} MB"
-                log_entries.append(log_entry)
-                print(log_entry)
-                wx.Yield()  # Process any pending events, allowing the GUI to update
-
-    # Create log file
-    log_file_path = os.path.join(dest_dir, "log.txt")
-    with open(log_file_path, "w") as log_file:
-        log_file.write(f"Processed {num_files_processed} files:\n")
-        log_file.write('\n'.join(log_entries))
-        log_file.write("\n")
-        log_file.write(f"\nSuccessfully compressed {num_files_compressed} images.")
-        log_file.write(f"\n{num_files_processed - num_files_compressed} images were not compressed.")
-        log_file.write(f"\nIn total, we saved {bytes_to_mb(total_saved_size):.2f} MB")
-
-    return log_file_path
 
 
 def count_files_in_destination(directory):
@@ -220,10 +179,15 @@ class CustomDialog(wx.Dialog):
 class CompressorApp(wx.Frame):
     def __init__(self, parent, title):
         super(CompressorApp, self).__init__(parent, title=title, size=(1300, 800))
-
+        # Initialize the attributes
+        self.last_frame_size = (0, 0)  # Initialize with a dummy value
+        self.bmp = None
+        self.last_size = (0, 0)  # Initialize with a dummy value
         self.source_directory = None
         self.destination_directory = None
         self.panel = wx.Panel(self)
+        self.last_github_click_time = 0
+        self.stop_requested = False
 
         # Determine if we're running as a bundled executable
         if getattr(sys, 'frozen', False):
@@ -259,6 +223,8 @@ class CompressorApp(wx.Frame):
         self.btn_source = wx.Button(self.panel, label='Select Source Directory', pos=(50, 150))
         self.btn_dest = wx.Button(self.panel, label='Select Destination Directory', pos=(50, 200))
         self.btn_start = wx.Button(self.panel, label='Start Compression', pos=(500, 360))
+        self.stop_button = wx.Button(self.panel, label='Stop Compression', pos=(650, 360))
+        self.stop_button.Disable()
 
         # Add a TextCtrl for console output
         self.console_output = wx.TextCtrl(self.panel, pos=(500, 100), size=(200, 150),
@@ -272,9 +238,10 @@ class CompressorApp(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_select_source, self.btn_source)
         self.Bind(wx.EVT_BUTTON, self.on_select_destination, self.btn_dest)
         self.Bind(wx.EVT_BUTTON, self.on_start_compression, self.btn_start)
+        self.Bind(wx.EVT_BUTTON, self.request_stop, self.stop_button)
 
         # Bind the resize event to the update background function
-        self.Bind(wx.EVT_SIZE, self.update_background)
+        self.Bind(wx.EVT_SIZE, self.on_resize)
 
         # Create a BoxSizer for vertical layout
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -296,6 +263,8 @@ class CompressorApp(wx.Frame):
 
         # Start button
         main_sizer.Add(self.btn_start, 0, wx.CENTER | wx.BOTTOM, 10)
+        # Stop button
+        main_sizer.Add(self.stop_button, 0, wx.CENTER | wx.BOTTOM, 10)
 
         # Add a Choice widget for compression options
         self.compression_choice = wx.Choice(self.panel, choices=COMPRESSION_OPTIONS, pos=(500, 50))
@@ -303,7 +272,7 @@ class CompressorApp(wx.Frame):
 
         # Load standard gif icon and loading animation gif
         self.github_icon_path = os.path.join(base_path, 'github_icon.gif')
-        self.github_loading_path = os.path.join(base_path, 'github_loading.gif')
+        self.github_loading_path = os.path.join(base_path, 'busy_loading.gif')
 
         self.standard_animation = wx.adv.Animation(self.github_icon_path)
         self.loading_animation = wx.adv.Animation(self.github_loading_path)
@@ -322,13 +291,66 @@ class CompressorApp(wx.Frame):
         self.Centre()
         self.Show(True)
 
+    def process_directory(self, src_dir, dest_dir, compression_option, console_output):
+        if os.path.exists(dest_dir):
+            shutil.rmtree(dest_dir)
+        shutil.copytree(src_dir, dest_dir)
+
+        num_files_processed = 0
+        num_files_compressed = 0
+        total_saved_size = 0
+        log_entries = []
+
+        for root, _, files in os.walk(dest_dir):
+            for file in files:
+                # Check if stop was requested
+                if self.stop_requested:
+                    return
+
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff')):
+                    img_path = os.path.join(root, file)
+                    initial_size, final_size = compress_image(img_path, compression_option)
+
+                    if initial_size > final_size:
+                        num_files_compressed += 1
+
+                    saved_size = initial_size - final_size
+                    total_saved_size += saved_size
+                    num_files_processed += 1
+
+                    new_name = get_new_filename(img_path, compression_option)
+                    os.rename(img_path, new_name)
+
+                    # Logging info for each file
+                    log_entry = f"{new_name} with {bytes_to_mb(initial_size):.2f} MB now with {bytes_to_mb(final_size):.2f} MB, saved {bytes_to_mb(saved_size):.2f} MB"
+                    log_entries.append(log_entry)
+                    wx.CallAfter(console_output.AppendText, log_entry + "\n")
+                    # Check for stop again on end.
+                    if self.stop_requested:
+                        return
+
+        # Create log file
+        log_file_path = os.path.join(dest_dir, "log.txt")
+        with open(log_file_path, "w") as log_file:
+            log_file.write(f"Processed {num_files_processed} files:\n")
+            log_file.write('\n'.join(log_entries))
+            log_file.write("\n")
+            log_file.write(f"\nSuccessfully compressed {num_files_compressed} images.")
+            log_file.write(f"\n{num_files_processed - num_files_compressed} images were not compressed.")
+            log_file.write(f"\nIn total, we saved {bytes_to_mb(total_saved_size):.2f} MB")
+
+        return log_file_path
+
     def on_resize(self, event):
         """Reposition the GitHub GIF when the window size changes."""
         frame_width, frame_height = self.GetSize()
-        gif_width, gif_height = self.gif_ctrl.GetSize()
-        margin = 55  # Margin from the bottom and right edges
-        gif_position = (frame_width - gif_width - margin, frame_height - gif_height - margin)
-        self.gif_ctrl.SetPosition(gif_position)
+        if not hasattr(self, "last_frame_size") or abs(self.last_frame_size[0] - frame_width) > 10 or abs(
+                self.last_frame_size[1] - frame_height) > 10:
+            gif_width, gif_height = self.gif_ctrl.GetSize()
+            margin = 55  # Margin from the bottom and right edges
+            gif_position = (frame_width - gif_width - margin, frame_height - gif_height - margin)
+            self.gif_ctrl.SetPosition(gif_position)
+            self.last_frame_size = (frame_width, frame_height)
 
         if event:  # Check if the event exists to avoid errors on initial call
             self.update_background(event)  # Update the background image as well
@@ -355,13 +377,28 @@ class CompressorApp(wx.Frame):
         dc.DrawBitmap(bmp, 0, 0, True)
 
     def on_github_icon_click(self, event):
+        # Disable the GitHub icon temporarily
+        self.gif_ctrl.Disable()
+
+        # Use startWorker to open the GitHub link in a separate thread
+        startWorker(self._open_github_done, self.open_github_link)
+
+        # Clickable once every 5 seconds
+        wx.CallLater(5000, self.gif_ctrl.Enable)
+
+    def _open_github_done(self, result):
+        """This will be called when open_github_link is done."""
+        pass
+
+    def open_github_link(self):
+        """Open the GitHub link in the default browser."""
         github_url = "https://github.com/zenWai/CompressImages-python"
         if sys.platform == 'win32':
             os.startfile(github_url)
         elif sys.platform == 'darwin':
-            subprocess.call(['open', github_url])
+            subprocess.Popen(['open', github_url])
         else:
-            subprocess.call(['xdg-open', github_url])
+            subprocess.Popen(['xdg-open', github_url])
 
     class TextRedirector:
         """A helper class to redirect the stdout/stderr to the TextCtrl widget."""
@@ -379,11 +416,12 @@ class CompressorApp(wx.Frame):
 
     def update_background(self, event):
         size = self.GetSize()
-
-        # Resize the image
-        image = wx.Image(self.image_file, wx.BITMAP_TYPE_ANY)
-        image = image.Scale(size[0], size[1], wx.IMAGE_QUALITY_HIGH)
-        self.bmp = wx.Bitmap(image)
+        if not hasattr(self, "last_size") or self.last_size != size:
+            # Resize the image
+            image = wx.Image(self.image_file, wx.BITMAP_TYPE_ANY)
+            image = image.Scale(size[0], size[1], wx.IMAGE_QUALITY_HIGH)
+            self.bmp = wx.Bitmap(image)
+            self.last_size = size
 
         event.Skip()  # Ensure other event handlers get the resize event as well
 
@@ -408,28 +446,65 @@ class CompressorApp(wx.Frame):
             if self.source_directory == self.destination_directory:
                 wx.MessageBox('Source and Destination directories cannot be the same. Please select a different '
                               'destination directory.', 'Info', wx.OK | wx.ICON_INFORMATION)
-            # starting compression
             else:
-                # Get selected compression option
-                compression_option = self.compression_choice.GetString(self.compression_choice.GetSelection())
-                print(f"Starting the compression with option: {compression_option}!")
-                # Set the GIF to loading mode
-                self.set_gif_animation('loading')
-                wx.Yield()
-                # Processing images
-                log_file_path = process_directory(self.source_directory, self.destination_directory, compression_option)
+                # Disable GitHub icon clickable action
+                self.gif_ctrl.Disable()
 
-                # Completed, set the GIF back to standard mode
-                self.set_gif_animation('standard')
-                # Custom Message Box on completion
-                dlg = CustomDialog(self, title="Compression Completed", log_file_path=log_file_path,
-                                   source_directory=self.source_directory,
-                                   destination_directory=self.destination_directory)
-                dlg.ShowModal()
-                dlg.Destroy()
+                # Disable the buttons and the compression option
+                self.btn_source.Disable()
+                self.btn_dest.Disable()
+                self.btn_start.Disable()
+                self.compression_choice.Disable()
+                self.stop_button.Enable()
+                self.stop_requested = False
+
+                # Create a new thread for the compression process
+                compression_thread = threading.Thread(target=self.run_compression)
+                compression_thread.start()
+
+    # User request Stop Button
+    def request_stop(self, event):
+        print("Stopping... Please wait. When buttons are enabled the stop process is finished.")
+        self.stop_button.Disable()
+        self.stop_requested = True
+
+    def enable_controls(self):
+        self.btn_source.Enable()
+        self.btn_dest.Enable()
+        self.btn_start.Enable()
+        self.compression_choice.Enable()
+        self.stop_button.Disable()  # Disable the stop button since processing is done
+
+    def show_completion_dialog(self, log_file_path):
+        dlg = CustomDialog(self, title="Compression Completed", log_file_path=log_file_path,
+                           source_directory=self.source_directory,
+                           destination_directory=self.destination_directory)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def run_compression(self):
+        compression_option = self.compression_choice.GetString(self.compression_choice.GetSelection())
+        wx.CallAfter(self.console_output.AppendText, f"Starting the compression with option: {compression_option}!\n")
+        # Set the GIF to loading mode
+        wx.CallAfter(self.set_gif_animation, 'loading')
+        # Processing images
+        log_file_path = self.process_directory(self.source_directory, self.destination_directory, compression_option,
+                                               self.console_output)
+
+        # If compression was stopped prematurely
+        if self.stop_requested:
+            wx.CallAfter(self.console_output.AppendText, "Compression was stopped by the user. Compressed files might "
+                                                         "be corrupted due to interruption.\n")
         else:
-            wx.MessageBox('Please select both source and destination directories first.', 'Info',
-                          wx.OK | wx.ICON_INFORMATION)
+            # Show the custom dialog
+            wx.CallAfter(self.show_completion_dialog, log_file_path)
+
+        # Completed, set the GIF back to standard mode
+        wx.CallAfter(self.set_gif_animation, 'standard')
+        # Re-enable the buttons and the compression option
+        wx.CallAfter(self.enable_controls)
+        # Re-enable the GitHub icon clickable action
+        wx.CallAfter(self.gif_ctrl.Enable)
 
 
 app = wx.App()

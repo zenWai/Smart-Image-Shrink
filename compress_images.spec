@@ -8,7 +8,7 @@ a = Analysis(
     ['compress_images.py'],
     pathex=[],
     binaries=[],
-    datas=[('background.jpg', '.')],
+    datas=[('background.jpg', '.'), ('github_icon.gif', '.'), ('busy_loading.gif', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
