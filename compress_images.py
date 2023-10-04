@@ -206,16 +206,16 @@ class CompressorApp(wx.Frame):
 
         # Add an explanation label at the top
         explanation = (
-            "This script compresses all images in the selected source directory and saves them "
-            "in the selected destination directory. To use:\n"
-            "1. Select the source directory.\n"
-            "2. Select the destination directory.\n"
-            "3. Select a compression option. (Default is 'Compress with No Data Loss').\n"
+            "This tool compresses images from a chosen Source Directory\nand saves them "
+            "in a Destination Directory.\n\n"
+            "1. Choose the Source Directory.\n"
+            "2. Specify the Destination Directory.\n"
+            "3. Pick a Compression Option. (Default: 'Compress with No Data Loss').\n"
             "4. Click 'Start Compression'.\n\n"
-            "Note on compression options:\n"
-            "- 'Compress with No Data Loss' retains the original image size but tries to reduce the file size without quality loss.\n"
-            "- 'Compress Size x2' resizes the image to half its original dimensions while maintaining the aspect ratio. This usually results in a significant file size reduction with little to no perceptible quality loss.\n"
-            "- As you increase the compression size (x4, x8, x16), the image size decreases proportionally. Quality loss becomes more noticeable, especially with 'Compress Size x16'."
+            "Compression Options:\n"
+            "   - 'Compress with No Data Loss'\nCompress with top-tier quality retention.\n"
+            "   - 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n"
+            "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
         )
         self.explanation_label = wx.StaticText(self.panel, label=explanation)
 
@@ -227,7 +227,7 @@ class CompressorApp(wx.Frame):
         self.stop_button.Disable()
 
         # Add a TextCtrl for console output
-        self.console_output = wx.TextCtrl(self.panel, pos=(500, 100), size=(200, 150),
+        self.console_output = wx.TextCtrl(self.panel, size=(0, 150),
                                           style=wx.TE_MULTILINE | wx.TE_READONLY)
 
         # Redirect stdout and stderr to the TextCtrl widget
@@ -253,10 +253,19 @@ class CompressorApp(wx.Frame):
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_sizer.Add(self.btn_source, 0, wx.ALL, 10)
         button_sizer.Add(self.btn_dest, 0, wx.ALL, 10)
+        # Add a Choice widget for compression options
+        self.compression_choice = wx.Choice(self.panel, choices=COMPRESSION_OPTIONS)
+        self.compression_choice.SetSelection(0)  # Set default selection to the first option
+        # Sizer for the compression choice widget
+        choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        choice_label = wx.StaticText(self.panel)
+        choice_sizer.Add(choice_label, 0, wx.CENTER | wx.ALL, 5)
+        choice_sizer.Add(self.compression_choice, 1, wx.EXPAND | wx.ALL, 5)
 
         main_sizer.Add(button_sizer, 0, wx.CENTER)
+        main_sizer.Add(choice_sizer, 0, wx.CENTER)
 
-        # Console output with a maximum height of what is set console_output
+        # Console output
         console_sizer = wx.BoxSizer(wx.VERTICAL)
         console_sizer.Add(self.console_output, 1, wx.ALL | wx.EXPAND, 10)
         main_sizer.Add(console_sizer, 0, wx.EXPAND, 10)
@@ -265,10 +274,6 @@ class CompressorApp(wx.Frame):
         main_sizer.Add(self.btn_start, 0, wx.CENTER | wx.BOTTOM, 10)
         # Stop button
         main_sizer.Add(self.stop_button, 0, wx.CENTER | wx.BOTTOM, 10)
-
-        # Add a Choice widget for compression options
-        self.compression_choice = wx.Choice(self.panel, choices=COMPRESSION_OPTIONS, pos=(500, 50))
-        self.compression_choice.SetSelection(0)  # Set default selection to the first option
 
         # Load standard gif icon and loading animation gif
         self.github_icon_path = os.path.join(base_path, 'github_icon.gif')
@@ -291,10 +296,20 @@ class CompressorApp(wx.Frame):
         self.Centre()
         self.Show(True)
 
+    def copy_tree(self, src, dst):
+        if not os.path.exists(dst):
+            os.makedirs(dst)
+
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                self.copy_tree(s, d)
+            else:
+                shutil.copy2(s, d)  # copy2 preserves file metadata
+
     def process_directory(self, src_dir, dest_dir, compression_option, console_output):
-        if os.path.exists(dest_dir):
-            shutil.rmtree(dest_dir)
-        shutil.copytree(src_dir, dest_dir)
+        self.copy_tree(src_dir, dest_dir)
 
         num_files_processed = 0
         num_files_compressed = 0
@@ -424,6 +439,7 @@ class CompressorApp(wx.Frame):
             self.last_size = size
 
         event.Skip()  # Ensure other event handlers get the resize event as well
+        self.panel.Refresh()
 
     def on_select_source(self, event):
         dlg = wx.DirDialog(self, "Choose a source directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
@@ -446,6 +462,10 @@ class CompressorApp(wx.Frame):
             if self.source_directory == self.destination_directory:
                 wx.MessageBox('Source and Destination directories cannot be the same. Please select a different '
                               'destination directory.', 'Info', wx.OK | wx.ICON_INFORMATION)
+            elif os.listdir(self.destination_directory):  # Check if the directory is not empty
+                wx.MessageBox('The destination directory is not empty. Please select an empty directory or clear the '
+                              'contents of the selected directory before starting the compression.',
+                              'Warning', wx.OK | wx.ICON_WARNING)
             else:
                 # Disable GitHub icon clickable action
                 self.gif_ctrl.Disable()
