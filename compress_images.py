@@ -177,14 +177,14 @@ class CompressorApp(wx.Frame):
 
         # Determine if we're running as a bundled executable
         if getattr(sys, 'frozen', False):
-            # If bundled executable, specify correct path to the image
-            base_path = sys._MEIPASS
+            # If running as bundled executable, use the current directory
+            base_path = os.path.dirname(sys.executable)
         else:
-            # If running as a script, use the default path
-            base_path = os.path.abspath(".")
+            # If running as a script, use the directory of the script
+            base_path = os.path.dirname(os.path.abspath(__file__))
 
         # Load the image
-        self.image_file = os.path.join(base_path, 'background.jpg')
+        self.image_file = os.path.join(base_path, 'img', 'background.jpg')
         self.image = wx.Image(self.image_file, wx.BITMAP_TYPE_ANY)
 
         # Bind the EVT_PAINT event of the panel to the on_paint method
@@ -262,8 +262,8 @@ class CompressorApp(wx.Frame):
         main_sizer.Add(self.stop_button, 0, wx.CENTER | wx.BOTTOM, 10)
 
         # Load standard gif icon and loading animation gif
-        self.github_icon_path = os.path.join(base_path, 'github_icon.gif')
-        self.github_loading_path = os.path.join(base_path, 'busy_loading.gif')
+        self.github_icon_path = os.path.join(base_path, 'img', 'github_icon.gif')
+        self.github_loading_path = os.path.join(base_path, 'img', 'busy_loading.gif')
 
         self.standard_animation = wx.adv.Animation(self.github_icon_path)
         self.loading_animation = wx.adv.Animation(self.github_loading_path)
@@ -481,18 +481,19 @@ class CompressorApp(wx.Frame):
         # Processing images
         log_file_path = self.process_directory(self.source_directory, self.destination_directory, compression_option,
                                                self.console_output)
-        return log_file_path
+        return log_file_path if log_file_path else "STOPPED"
 
     def compression_done(self, result):
         """Handle the results of the compression thread."""
-        if result.get():
+        result_value = result.get()
+        if result_value:
             # If compression was stopped prematurely
-            if self.stop_requested:
-                self.console_output.AppendText("Compression was stopped by the user. Compressed files might "
-                                               "be corrupted due to interruption.\n\n")
+            if result_value == "STOPPED":
+                print("Compression was stopped by the user. Compressed files might "
+                      "be corrupted due to interruption.\n\n")
             else:
                 # Show the custom dialog
-                self.show_completion_dialog(result.get())
+                self.show_completion_dialog(result_value)
 
             # Completed, set the GIF back to standard mode
             self.set_gif_animation('standard')
