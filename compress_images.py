@@ -1,8 +1,7 @@
 import os
 import shutil
-import subprocess
 import sys
-import threading
+import webbrowser
 
 import wx
 import wx.adv
@@ -154,26 +153,13 @@ class CustomDialog(wx.Dialog):
         self.Fit()
 
     def open_log_file(self, event):
-        if sys.platform == 'win32':
-            os.startfile(self.log_file_path)
-        elif sys.platform == 'darwin':
-            subprocess.call(['open', self.log_file_path])
-        else:
-            subprocess.call(['xdg-open', self.log_file_path])
+        webbrowser.open(self.log_file_path)
 
     def open_source_directory(self, event):
-        self.open_directory(self.source_directory)
+        webbrowser.open(self.source_directory)
 
     def open_destination_directory(self, event):
-        self.open_directory(self.destination_directory)
-
-    def open_directory(self, directory_path):
-        if sys.platform == 'win32':
-            os.startfile(directory_path)
-        elif sys.platform == 'darwin':
-            subprocess.call(['open', directory_path])
-        else:
-            subprocess.call(['xdg-open', directory_path])
+        webbrowser.open(self.destination_directory)
 
 
 class CompressorApp(wx.Frame):
@@ -206,16 +192,16 @@ class CompressorApp(wx.Frame):
 
         # Add an explanation label at the top
         explanation = (
-            "This tool compresses images from a chosen Source Directory\nand saves them "
+            "This tool compresses images from a chosen Source Directory and saves them "
             "in a Destination Directory.\n\n"
             "1. Choose the Source Directory.\n"
             "2. Specify the Destination Directory.\n"
             "3. Pick a Compression Option. (Default: 'Compress with No Data Loss').\n"
             "4. Click 'Start Compression'.\n\n"
             "Compression Options:\n"
-            "   - 'Compress with No Data Loss'\nCompress with top-tier quality retention.\n"
-            "   - 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n"
-            "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
+            "   - 'Compress with No Data Loss' Compress with top-tier quality retention.\n"
+            "   - 'Compress Size x2' Halves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
+            "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
         )
         self.explanation_label = wx.StaticText(self.panel, label=explanation)
 
@@ -395,25 +381,11 @@ class CompressorApp(wx.Frame):
         # Disable the GitHub icon temporarily
         self.gif_ctrl.Disable()
 
-        # Use startWorker to open the GitHub link in a separate thread
-        startWorker(self._open_github_done, self.open_github_link)
+        github_url = "https://github.com/zenWai/CompressImages-python"
+        webbrowser.open(github_url)
 
         # Clickable once every 5 seconds
         wx.CallLater(5000, self.gif_ctrl.Enable)
-
-    def _open_github_done(self, result):
-        """This will be called when open_github_link is done."""
-        pass
-
-    def open_github_link(self):
-        """Open the GitHub link in the default browser."""
-        github_url = "https://github.com/zenWai/CompressImages-python"
-        if sys.platform == 'win32':
-            os.startfile(github_url)
-        elif sys.platform == 'darwin':
-            subprocess.Popen(['open', github_url])
-        else:
-            subprocess.Popen(['xdg-open', github_url])
 
     class TextRedirector:
         """A helper class to redirect the stdout/stderr to the TextCtrl widget."""
@@ -479,8 +451,7 @@ class CompressorApp(wx.Frame):
                 self.stop_requested = False
 
                 # Create a new thread for the compression process
-                compression_thread = threading.Thread(target=self.run_compression)
-                compression_thread.start()
+                startWorker(self.compression_done, self.run_compression)
 
     # User request Stop Button
     def request_stop(self, event):
@@ -510,21 +481,25 @@ class CompressorApp(wx.Frame):
         # Processing images
         log_file_path = self.process_directory(self.source_directory, self.destination_directory, compression_option,
                                                self.console_output)
+        return log_file_path
 
-        # If compression was stopped prematurely
-        if self.stop_requested:
-            wx.CallAfter(self.console_output.AppendText, "Compression was stopped by the user. Compressed files might "
-                                                         "be corrupted due to interruption.\n\n")
-        else:
-            # Show the custom dialog
-            wx.CallAfter(self.show_completion_dialog, log_file_path)
+    def compression_done(self, result):
+        """Handle the results of the compression thread."""
+        if result.get():
+            # If compression was stopped prematurely
+            if self.stop_requested:
+                self.console_output.AppendText("Compression was stopped by the user. Compressed files might "
+                                               "be corrupted due to interruption.\n\n")
+            else:
+                # Show the custom dialog
+                self.show_completion_dialog(result.get())
 
-        # Completed, set the GIF back to standard mode
-        wx.CallAfter(self.set_gif_animation, 'standard')
-        # Re-enable the buttons and the compression option
-        wx.CallAfter(self.enable_controls)
-        # Re-enable the GitHub icon clickable action
-        wx.CallAfter(self.gif_ctrl.Enable)
+            # Completed, set the GIF back to standard mode
+            self.set_gif_animation('standard')
+            # Re-enable the buttons and the compression option
+            self.enable_controls()
+            # Re-enable the GitHub icon clickable action
+            self.gif_ctrl.Enable()
 
 
 app = wx.App()
