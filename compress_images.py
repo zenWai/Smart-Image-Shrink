@@ -136,11 +136,11 @@ class CustomDialog(wx.Dialog):
         sizer.Add(open_log_btn, wx.SizerFlags().Border(wx.ALL, 10))
 
         # Button to open Source Directory
-        open_src_btn = wx.Button(self, label="Open Source Directory")
+        open_src_btn = wx.Button(self, label="Source Directory")
         open_src_btn.Bind(wx.EVT_BUTTON, self.open_source_directory)
 
         # Button to open Destination Directory
-        open_dest_btn = wx.Button(self, label="Open Destination Directory")
+        open_dest_btn = wx.Button(self, label="Destination Directory")
         open_dest_btn.Bind(wx.EVT_BUTTON, self.open_destination_directory)
 
         # Buttons Source and Destination together
@@ -208,26 +208,26 @@ class CompressorApp(wx.Frame):
         explanation = (
             "This tool compresses images from a chosen Source Directory and saves them "
             "in a Destination Directory.\n\n"
-            "#️⃣1. Choose the Source Directory.\n"
-            "#️⃣2. Specify the Destination Directory.\n"
-            "#️⃣3. Pick a Compression Option. (Default: 'Compress with No Data Loss').\n"
-            "#️⃣4. Click 'Start Compression'.\n\n"
+            "✳️ Choose the Source Directory.\n"
+            "✳️ Specify the Destination Directory.\n"
+            "✳️ Pick a Compression Option. (Default: 'Compress with No Data Loss').\n"
+            "✳️ Click 'Start Compression'.\n\n"
             "⭐Compression Options:\n"
-            "   - 'Compress with No Data Loss' Compress with top-tier quality retention.\n"
-            "   - 'Compress Size x2' Halves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
+            "   - To Compress with Top-Tier Quality retention use ➡️'Compress with No Data Loss'\n"
+            "   - To Compress and Greatly Decrease the Image Size use ➡️ 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
             "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
         )
         self.explanation_label = wx.StaticText(self.panel, label=explanation)
-        font_explanation_label = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font_explanation_label = wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.explanation_label.SetFont(font_explanation_label)
         # Add buttons to the panel
         # Select Source Directory button
-        self.btn_source = buttons.GenButton(self.panel, label='📁 Select Source Directory', pos=(50, 150))
+        self.btn_source = buttons.GenButton(self.panel, label='📁 Source Directory   ', pos=(50, 150))
         self.btn_source.SetBackgroundColour('navy')
         self.btn_source.SetForegroundColour('white')
         self.btn_source.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
         # Select Destination Directory Button
-        self.btn_dest = buttons.GenButton(self.panel, label='📁 Select Destination Directory', pos=(50, 200))
+        self.btn_dest = buttons.GenButton(self.panel, label='📁 Destination Directory   ', pos=(50, 200))
         self.btn_dest.SetBackgroundColour('navy')
         self.btn_dest.SetForegroundColour('white')
         self.btn_dest.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
