@@ -27,43 +27,34 @@ def bytes_to_mb(size_in_bytes):
     return size_in_bytes / (1000 * 1000)
 
 
+def resize_image(img, compression_option):
+    factor = int(compression_option.split(' ')[-1][1:])
+    new_width = int(img.width / factor)
+    aspect_ratio = img.height / img.width
+    new_height = int(aspect_ratio * new_width)
+    resampling_method = Image.Resampling.LANCZOS if img.mode in ["L", "RGB", "RGBA"] else Image.NEAREST
+    return img.resize((new_width, new_height), resampling_method)
+
+
+def save_image(img, img_path):
+    if img_path.lower().endswith('.png'):
+        img.save(img_path, optimize=True)
+    elif img_path.lower().endswith(('.jpg', '.jpeg')):
+        img.save(img_path, quality=95)
+    elif img_path.lower().endswith(('.tif', '.tiff')):
+        img.save(img_path, compression='tiff_lzw')
+
+
 def compress_image(img_path, compression_option):
     initial_size = os.path.getsize(img_path)
     try:
         with Image.open(img_path) as img:
-            width, height = img.size
-
-            # If compression option involves resizing, calculate new dimensions
             if 'Compress Size' in compression_option:
-                factor = int(compression_option.split(' ')[-1][1:])
-                new_width = int(width / factor)
-                aspect_ratio = height / width
-                new_height = int(aspect_ratio * new_width)
-                # Check the image mode and decide the resampling method
-                if img.mode in ["L", "RGB", "RGBA"]:
-                    resampling_method = Image.Resampling.LANCZOS
-                else:
-                    resampling_method = Image.NEAREST
-
-                img = img.resize((new_width, new_height), resampling_method)
-
-            # Apply appropriate compression
-            if img_path.lower().endswith('.png'):
-                img.save(img_path, optimize=True)
-            elif img_path.lower().endswith(('.jpg', '.jpeg')):
-                img.save(img_path, quality=95)
-            elif img_path.lower().endswith(('.tif', '.tiff')):
-                img.save(img_path, compression='tiff_lzw')
-            else:
-                print("")
-                print(f"{img_path} has an unsupported file extension. Skipping...")
-                print("")
-                return initial_size, initial_size
+                img = resize_image(img, compression_option)
+            save_image(img, img_path)
     except Exception as e:
-        print("")
         print(f"Error processing {img_path}: {e}")
         return initial_size, initial_size
-
     final_size = os.path.getsize(img_path)
     return initial_size, final_size
 
@@ -319,22 +310,31 @@ class CompressorApp(wx.Frame):
         self.Centre()
         self.Show(True)
 
-    def copy_tree(self, src, dst):
-        if not os.path.exists(dst):
-            os.makedirs(dst)
+    def process_file(self, file_path, dest_dir, compression_option):
+        if not self.is_supported_file(file_path):
+            return
+        dest_path = self.prepare_destination_path(file_path, dest_dir)
+        initial_size, final_size = compress_image(dest_path, compression_option)
+        new_name = get_new_filename(dest_path, compression_option)
+        os.rename(dest_path, new_name)
+        return initial_size, final_size, new_name
 
-        for item in os.listdir(src):
-            s = os.path.join(src, item)
-            d = os.path.join(dst, item)
-            if os.path.isdir(s):
-                self.copy_tree(s, d)
-            else:
-                shutil.copy2(s, d)  # copy2 preserves file metadata
+    def is_supported_file(self, file_path):
+        supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
+        return any(file_path.lower().endswith(ext) for ext in supported_extensions)
+
+    def prepare_destination_path(self, src_path, dest_dir):
+        rel_path = os.path.relpath(src_path, self.source_directory)
+        dest_path = os.path.join(dest_dir, rel_path)
+        self.create_destination_subdirectory(dest_path)
+        shutil.copy2(src_path, dest_path)
+        return dest_path
+
+    def create_destination_subdirectory(self, dest_path):
+        dest_subdir = os.path.dirname(dest_path)
+        os.makedirs(dest_subdir, exist_ok=True)
 
     def process_directory(self, src_dir, dest_dir, compression_option, console_output):
-        # Define supported extensions
-        supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
-
         num_files_processed = 0
         total_saved_size = 0
         log_entries = []
@@ -345,31 +345,13 @@ class CompressorApp(wx.Frame):
                 # Check if stop was requested
                 if self.stop_requested:
                     return
-
-                # Only process and copy supported file types
-                if any(file.lower().endswith(ext) for ext in supported_extensions):
-                    src_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(src_path, src_dir)
-                    dest_path = os.path.join(dest_dir, rel_path)
-
-                    # Create destination subdirectory if it doesn't exist
-                    dest_subdir = os.path.dirname(dest_path)
-                    if not os.path.exists(dest_subdir):
-                        os.makedirs(dest_subdir)
-
-                    # Copy file to destination directory
-                    shutil.copy2(src_path, dest_path)
-
-                    initial_size, final_size = compress_image(dest_path, compression_option)
-
+                src_path = os.path.join(root, file)
+                result = self.process_file(src_path, dest_dir, compression_option)
+                if result:
+                    initial_size, final_size, new_name = result
                     saved_size = initial_size - final_size
                     total_saved_size += saved_size
                     num_files_processed += 1
-
-                    new_name = get_new_filename(dest_path, compression_option)
-                    os.rename(dest_path, new_name)
-
-                    # Logging info for each file
                     log_entry = f"{new_name} with {bytes_to_mb(initial_size):.2f} MB now with {bytes_to_mb(final_size):.2f} MB, saved {bytes_to_mb(saved_size):.2f} MB"
                     log_entries.append(log_entry)
                     wx.CallAfter(console_output.AppendText, log_entry + "\n")
@@ -568,6 +550,7 @@ class CompressorApp(wx.Frame):
                       "be corrupted due to interruption.\n\n")
             else:
                 # Show the custom dialog
+                self.set_gif_animation('standard')
                 self.show_completion_dialog(result_value)
 
             # Completed, set the GIF back to standard mode
