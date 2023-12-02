@@ -8,12 +8,12 @@ This script provides a GUI for compressing images in a selected source directory
 This script has been bundled into standalone executables for both macOS(arm64 only) and Windows. This means you can run the application on these platforms without needing to have Python or the required packages installed.
 
 ### Running on macOS:
-1. [Download the macOS executable from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.1-alpha/compress_images_macOS_arm64)
+1. [Download the macOS executable from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.3-alpha/Compress_Images_v0.3_MacOS.zip)
 2. Right-click(options macOS) on the downloaded file and click open.
 3. Open again on prompt.
 
 ### Running on Windows:
-1. [Download the Windows executable from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.1-alpha/compress_images_windows.exe)
+1. [Download the Windows executable from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.3-alpha/Compress_Images_v0.3_Windows.zip)
 2. Double-click on the downloaded file to run the application.
 
 ### Open the application.
