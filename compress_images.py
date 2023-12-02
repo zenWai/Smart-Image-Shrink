@@ -89,6 +89,10 @@ def count_files_in_destination(directory):
         print("")
 
 
+def format_table_row(items, widths):
+    return ' | '.join(item.ljust(width) for item, width in zip(items, widths))
+
+
 def count_files_in_source(directory):
     total_files = 0
     unsupported_files_count = 0
@@ -237,6 +241,8 @@ class CompressorApp(wx.Frame):
         # Add a TextCtrl for console output
         self.console_output = wx.TextCtrl(self.panel, size=(0, 150),
                                           style=wx.TE_MULTILINE | wx.TE_READONLY)
+        monospaced_font = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.console_output.SetFont(monospaced_font)
 
         # Redirect stdout and stderr to the TextCtrl widget
         sys.stdout = self.TextRedirector(self.console_output)
@@ -337,7 +343,10 @@ class CompressorApp(wx.Frame):
     def process_directory(self, src_dir, dest_dir, compression_option, console_output):
         num_files_processed = 0
         total_saved_size = 0
-        log_entries = []
+        widths = [65, 20, 20, 20]  # Column widths
+        header = ["File Name", "Original Size (MB)", "New Size (MB)", "Saved Size (MB)"]
+        log_entries = [format_table_row(header, widths)]
+        log_entries.append('-' * sum(widths))  # Separator line
         skipped_files = []  # List to keep track of skipped (unsupported) files
 
         for root, _, files in os.walk(src_dir):
@@ -352,9 +361,16 @@ class CompressorApp(wx.Frame):
                     saved_size = initial_size - final_size
                     total_saved_size += saved_size
                     num_files_processed += 1
-                    log_entry = f"{new_name} with {bytes_to_mb(initial_size):.2f} MB now with {bytes_to_mb(final_size):.2f} MB, saved {bytes_to_mb(saved_size):.2f} MB"
+                    # Parsing only the file name from new_name
+                    file_name = os.path.basename(new_name)
+                    log_entry = format_table_row(
+                        [file_name, f"{bytes_to_mb(initial_size):.2f}", f"{bytes_to_mb(final_size):.2f}",
+                         f"{bytes_to_mb(saved_size):.2f}"], widths)
                     log_entries.append(log_entry)
-                    wx.CallAfter(console_output.AppendText, log_entry + "\n")
+                    console_entry = format_table_row(
+                        [file_name, f"Initial Size: {bytes_to_mb(initial_size):.2f}MB", f"Final Size: {bytes_to_mb(final_size):.2f}MB",
+                         f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
+                    wx.CallAfter(console_output.AppendText, console_entry + "\n")
                 else:
                     skipped_files.append(file)
                 # Check for stop again on end.
@@ -373,7 +389,7 @@ class CompressorApp(wx.Frame):
         with open(log_file_path, "w") as log_file:
             log_file.write(f"Processed {num_files_processed} files:\n")
             log_file.write('\n'.join(log_entries))
-            log_file.write("\n")
+            log_file.write('\n')
             log_file.write(f"\nSuccessfully compressed {num_files_processed} images.")
             log_file.write(f"\nIn total, we saved {bytes_to_mb(total_saved_size):.2f} MB")
 
