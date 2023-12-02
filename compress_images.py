@@ -201,10 +201,10 @@ class CompressorApp(wx.Frame):
 
         # Add an explanation label at the top
         explanation = (
-            "This tool compresses images from a chosen Source Directory and saves them "
+            "This Software Compress images from a chosen Source Directory and saves them "
             "in a Destination Directory.\n\n"
-            "✳️ Choose the Source Directory.\n"
-            "✳️ Specify the Destination Directory.\n"
+            "✳️ Select the Source Directory.\n"
+            "✳️ Select the Destination Directory.\n"
             "✳️ Pick a Compression Option. (Default: 'Compress with No Data Loss').\n"
             "✳️ Click 'Start Compression'.\n\n"
             "⭐Compression Options:\n"
@@ -213,7 +213,7 @@ class CompressorApp(wx.Frame):
             "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
         )
         self.explanation_label = wx.StaticText(self.panel, label=explanation)
-        font_explanation_label = wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font_explanation_label = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.explanation_label.SetFont(font_explanation_label)
         # Add buttons to the panel
         # Select Source Directory button
