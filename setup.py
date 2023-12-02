@@ -7,7 +7,8 @@ build_exe_options = {
     "include_files": [
         ("./img/background2.png", "img/background2.png"),
         ("./img/github_icon.gif", "img/github_icon.gif"),
-        ("./img/busy_loading.gif", "img/busy_loading.gif")
+        ("./img/busy_loading.gif", "img/busy_loading.gif"),
+        ("./img/icon.ico", "img/icon.ico")
     ],
     "excludes": ["tkinter"]  # Exclude tkinter if you're not using it
 }

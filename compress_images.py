@@ -192,6 +192,16 @@ class CompressorApp(wx.Frame):
             # If running as a script, use the directory of the script
             base_path = os.path.dirname(os.path.abspath(__file__))
 
+        # Load the icon
+        self.icon = wx.Icon()
+        if platform.system() == "Windows":
+            icon_path = "img/icon.ico"
+        else:  # macOS and potentially other platforms
+            icon_path = "img/icon.icns"
+
+        self.icon.CopyFromBitmap(wx.Bitmap(icon_path, wx.BITMAP_TYPE_ANY))
+        self.SetIcon(self.icon)
+
         # Load the image
         self.image_file = os.path.join(base_path, 'img', 'background2.png')
         self.image = wx.Image(self.image_file, wx.BITMAP_TYPE_ANY)
@@ -368,7 +378,8 @@ class CompressorApp(wx.Frame):
                          f"{bytes_to_mb(saved_size):.2f}"], widths)
                     log_entries.append(log_entry)
                     console_entry = format_table_row(
-                        [file_name, f"Initial Size: {bytes_to_mb(initial_size):.2f}MB", f"Final Size: {bytes_to_mb(final_size):.2f}MB",
+                        [file_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
+                         f"Final Size: {bytes_to_mb(final_size):.2f}MB",
                          f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
                     wx.CallAfter(console_output.AppendText, console_entry + "\n")
                 else:
@@ -381,6 +392,7 @@ class CompressorApp(wx.Frame):
             skipped_msg = f"\n{len(skipped_files)} files were not processed (unsupported extensions):\n{', '.join(skipped_files)}"
             log_entries.append(skipped_msg)
             wx.CallAfter(console_output.AppendText, skipped_msg)
+            wx.CallAfter(console_output.AppendText, '\n')
 
         wx.CallAfter(console_output.AppendText, '\nCompression ended\n')
         wx.CallAfter(console_output.AppendText, f"\n✅Successfully compressed {num_files_processed} images.\n")
@@ -485,28 +497,43 @@ class CompressorApp(wx.Frame):
     def on_start_compression(self, event):
         # Check if source directory is not selected
         if not self.source_directory:
-            wx.MessageBox('Missing source directory. Please select a source directory.', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('Missing source directory. Please select a source directory.',
+                          'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check if destination directory is not selected
         if not self.destination_directory:
-            wx.MessageBox('Missing destination directory. Please select a destination directory.', 'Error',
-                          wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('Missing destination directory. Please select a destination directory.',
+                          'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check if source and destination directories are the same
         if self.source_directory == self.destination_directory:
             wx.MessageBox(
                 'Source and Destination directories cannot be the same. Please select a different destination directory.',
-                'Info', wx.OK | wx.ICON_INFORMATION)
+                'Warning', wx.OK | wx.ICON_WARNING)
             return
+
+        # Check for different disks (or partitions)
+        if os.name == 'nt':  # For Windows
+            if os.path.splitdrive(self.source_directory)[0] != os.path.splitdrive(self.destination_directory)[0]:
+                wx.MessageBox(
+                    'DETECTED: Source and Destination directories are on different Partition/Disk. App needs Source and Destination on same Partition/Disk',
+                    'Warning', wx.OK | wx.ICON_WARNING)
+                return
+        else:  # For Unix-like systems (macOS, Linux)
+            if os.path.ismount(self.source_directory) != os.path.ismount(self.destination_directory):
+                wx.MessageBox(
+                    'DETECTED: Source and Destination directories are on different Partition/Disk. App needs Source and Destination on same Partition/Disk',
+                    'Warning', wx.OK | wx.ICON_WARNING)
+                return
 
         # Check if the destination directory is a subdirectory of the source directory
         if os.path.commonpath([self.source_directory, self.destination_directory]) == os.path.normpath(
                 self.source_directory):
             wx.MessageBox(
                 'The destination directory cannot be a subdirectory of the source directory.\n -Try creating a new Empty Folder outside of the Source Directory.\n -Select that new Folder as your Destination Directory',
-                'Error', wx.OK | wx.ICON_ERROR)
+                'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check if the destination directory is not empty
@@ -578,7 +605,7 @@ class CompressorApp(wx.Frame):
 
 
 app = wx.App()
-CompressorApp(None, title='Meow eat images')
+CompressorApp(None, title='SmartImageShrink')
 app.MainLoop()
 
 if __name__ == "__main__":
