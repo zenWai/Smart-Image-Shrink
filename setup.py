@@ -22,5 +22,5 @@ setup(
     version="0.3",
     description="Compress images from a source to a destination directory",
     options={"build_exe": build_exe_options},
-    executables=[Executable("compress_images.py", base=base, icon="./img/icon.ico")]
+    executables=[Executable("compress_images.py", base=base)]
 )

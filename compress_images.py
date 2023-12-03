@@ -192,15 +192,12 @@ class CompressorApp(wx.Frame):
             # If running as a script, use the directory of the script
             base_path = os.path.dirname(os.path.abspath(__file__))
 
-        # Load the icon
-        self.icon = wx.Icon()
+        # Load the icon windows
         if platform.system() == "Windows":
+            self.icon = wx.Icon()
             icon_path = "img/icon.ico"
-        else:  # macOS and potentially other platforms
-            icon_path = "img/icon.icns"
-
-        self.icon.CopyFromBitmap(wx.Bitmap(icon_path, wx.BITMAP_TYPE_ANY))
-        self.SetIcon(self.icon)
+            self.icon.CopyFromBitmap(wx.Bitmap(icon_path, wx.BITMAP_TYPE_ANY))
+            self.SetIcon(self.icon)
 
         # Load the image
         self.image_file = os.path.join(base_path, 'img', 'background2.png')
