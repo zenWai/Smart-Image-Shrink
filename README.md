@@ -1,25 +1,36 @@
-# Image Compressor
-This script provides a GUI for compressing images in a selected source directory and saving them in a specified destination directory. The image resizing threshold is set at a width of 1080 pixels with max quality and will mantain the aspect ratio. The script supports .png, .jpg, .jpeg, .tif, and .tiff file formats.
+# SmartImageProcessor
+SmartImageProcessor Application offers an efficient solution for compressing images while meticulously preserving their quality, metadata and data integrity.
 
-| ![logTXT of compressed images](https://github.com/zenWai/CompressImages-python/assets/124523559/f0f99b5a-1831-4155-b5a4-4477075bf4d4) | ![Compress images preview image](https://github.com/zenWai/CompressImages-python/assets/124523559/d49f36f4-82dc-4c5e-9232-a2553fe97ca7) |
-|:---:|:---:|
+It's designed to be both user-friendly and powerful, with several options for the user from quality retention to agressive reducing size and employing state-of-the-art technologies to ensure optimal results.
+
+Supports .tif .tiff .jpg .jpeg .png and high quality bit-depth 32-16.
 
 # Using the Application
-This script has been bundled into standalone executables for both macOS(arm64 only) and Windows. This means you can run the application on these platforms without needing to have Python or the required packages installed.
+
+![ezgif com-optimize (3)](https://github.com/zenWai/CompressImages-python/assets/124523559/1b25040a-1420-4295-b2c1-63bbe07b1bd4)
+
+You can run the application on Windows and MacOS.
 
 ### Running on macOS:
-1. [Download the macOS executable from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.3-alpha/Compress_Images_v0.3_MacOS.zip)
-2. Right-click(options macOS) on the downloaded file and click open.
-3. Open again on prompt.
+1. [Download the macOS Zip from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.3-alpha/Compress_Images_v0.3_MacOS.zip)
+2. Run the Application
 
 ### Running on Windows:
-1. [Download the Windows executable from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.3-alpha/Compress_Images_v0.3_Windows.zip)
-2. Double-click on the downloaded file to run the application.
+1. [Download the Windows Zip from the releases section.](https://github.com/zenWai/CompressImages-python/releases/download/v0.3-alpha/Compress_Images_v0.3_Windows.zip)
+2. Run the Application
 
 ### Open the application.
-1. Click on 'Select Source Directory' to choose the directory containing the images you want to compress.
-2. Click on 'Select Destination Directory' to choose where the compressed images will be saved.
-3. Click 'Start Compression'. The script will process the images and provide feedback in the console window.
+1. Select the directory containing the images you want to compress.
+2. Select where the compressed images will be saved.
+3. Choose a Compression Method
+4. 'Start Compression'. The App will process the images and provide feedback in the console window.
+
+# Test Case
+
+Test case with Compressed image VS original image with a size of 899MB VS 1,56 GB
+![Screenshot 2023-12-03 at 21 20 52](https://github.com/zenWai/CompressImages-python/assets/124523559/0e720eb4-6dd1-41b4-aaac-3d40227d4ff6)
+![Screenshot 2023-12-03 at 21 26 28](https://github.com/zenWai/CompressImages-python/assets/124523559/59560038-5217-46c4-984e-982a441ee47d)
+
 
 # Run Locally
 Setup Python 3.x
