@@ -1,17 +1,17 @@
 import os
-import shutil
+import platform
+import subprocess
 import sys
 import webbrowser
-import subprocess
-import platform
 
 import wx
 import wx.adv
-from PIL import Image
-from wx.lib.delayedresult import startWorker
 import wx.lib.buttons as buttons
+from wx.lib.delayedresult import startWorker
 
-Image.MAX_IMAGE_PIXELS = None
+from compress_logic import run_compression
+from compress_logic import request_stop as logic_request_stop
+from helpers import count_files_in_source, count_files_in_destination
 
 COMPRESSION_OPTIONS = [
     'Compress with No Data Loss',
@@ -20,155 +20,6 @@ COMPRESSION_OPTIONS = [
     'Compress Size x8',
     'Compress Size x16',
 ]
-
-
-# using base of 1000 instead of Mebibytes 1024 (MiB)
-def bytes_to_mb(size_in_bytes):
-    return size_in_bytes / (1000 * 1000)
-
-
-def resize_image(img, compression_option):
-    factor = int(compression_option.split(' ')[-1][1:])
-    new_width = int(img.width / factor)
-    aspect_ratio = img.height / img.width
-    new_height = int(aspect_ratio * new_width)
-    resampling_method = Image.Resampling.LANCZOS if img.mode in ["L", "RGB", "RGBA"] else Image.NEAREST
-    return img.resize((new_width, new_height), resampling_method)
-
-
-def save_image(img, img_path):
-    if img_path.lower().endswith('.png'):
-        img.save(img_path, optimize=True)
-    elif img_path.lower().endswith(('.jpg', '.jpeg')):
-        img.save(img_path, quality=95)
-    elif img_path.lower().endswith(('.tif', '.tiff')):
-        img.save(img_path, compression='tiff_lzw')
-
-
-def compress_image(img_path, compression_option):
-    initial_size = os.path.getsize(img_path)
-    try:
-        with Image.open(img_path) as img:
-            if 'Compress Size' in compression_option:
-                img = resize_image(img, compression_option)
-            save_image(img, img_path)
-    except Exception as e:
-        print(f"Error processing {img_path}: {e}")
-        return initial_size, initial_size
-    final_size = os.path.getsize(img_path)
-    return initial_size, final_size
-
-
-def get_new_filename(img_path, compression_option):
-    base, ext = os.path.splitext(img_path)
-    if compression_option == 'Compress with No Data Loss':
-        new_name = base + '_compressed' + ext
-    elif 'Compress Size' in compression_option:
-        factor = compression_option.split(' ')[-1]  # Gets factor from COMPRESSION_OPTIONS text
-        new_name = base + '_compressed_' + factor + ext
-    # In case any problems with compression_option
-    else:
-        new_name = base + '_compressed' + ext
-    return new_name
-
-
-def count_files_in_destination(directory):
-    total_files = 0
-
-    for root, _, files in os.walk(directory):
-        for file in files:
-            total_files += 1
-
-    if total_files == 0:
-        print("👌Destination Directory is empty, that is perfect!")
-        print("")
-    else:
-        print(f"Total Files in Destination Directory: {total_files}")
-        print("⚠️Warning: It is recommended that the destination directory should be empty.")
-        print("⚠️Warning: Existing files in the destination will be lost.")
-        print("")
-
-
-def format_table_row(items, widths):
-    return ' | '.join(item.ljust(width) for item, width in zip(items, widths))
-
-
-def count_files_in_source(directory):
-    total_files = 0
-    unsupported_files_count = 0
-    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
-
-    for root, _, files in os.walk(directory):
-        for file in files:
-            total_files += 1
-            print(f"File {total_files}: {file}")
-            if not any(file.lower().endswith(ext) for ext in supported_extensions):
-                unsupported_files_count += 1
-
-    print(f"Total Files in Source Directory: {total_files}")
-    print("")
-    if unsupported_files_count > 0:
-        print(f"Unsupported Files in Source Directory: {unsupported_files_count}")
-        print(f"Note: Only files with the following extensions will be compressed: {', '.join(supported_extensions)}")
-        print("")
-
-
-# Dialog with option to open log.txt
-class CustomDialog(wx.Dialog):
-    def __init__(self, *args, log_file_path, source_directory, destination_directory, **kwargs):
-        super(CustomDialog, self).__init__(*args, **kwargs)
-        self.log_file_path = log_file_path
-        self.source_directory = source_directory
-        self.destination_directory = destination_directory
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        message = wx.StaticText(self, label="Compression of images has completed!")
-        sizer.Add(message, wx.SizerFlags().Border(wx.TOP | wx.LEFT, 10))
-
-        # Button to open the log file
-        open_log_btn = wx.Button(self, label="Open Log File")
-        open_log_btn.Bind(wx.EVT_BUTTON, self.open_log_file)
-        sizer.Add(open_log_btn, wx.SizerFlags().Border(wx.ALL, 10))
-
-        # Button to open Source Directory
-        open_src_btn = wx.Button(self, label="Source Directory")
-        open_src_btn.Bind(wx.EVT_BUTTON, self.open_source_directory)
-
-        # Button to open Destination Directory
-        open_dest_btn = wx.Button(self, label="Destination Directory")
-        open_dest_btn.Bind(wx.EVT_BUTTON, self.open_destination_directory)
-
-        # Buttons Source and Destination together
-        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(open_src_btn, 0, wx.RIGHT, 10)
-        button_sizer.Add(open_dest_btn, 0, wx.LEFT, 10)
-        sizer.Add(button_sizer, 0, wx.CENTER | wx.ALL, 10)
-
-        ok_button = wx.Button(self, wx.ID_OK, "OK")
-        sizer.Add(ok_button, wx.SizerFlags().Border(wx.ALL, 10).Center())
-
-        self.SetSizer(sizer)
-        self.Fit()
-
-    def open_path(self, path):
-        try:
-            if platform.system() == "Windows":
-                os.startfile(path)
-            elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", path], check=True)
-            else:  # Assuming Linux or other Unix-like OS
-                subprocess.run(["xdg-open", path], check=True)
-        except Exception as e:
-            wx.MessageBox(f"Failed to open the path: {e}", "Error", wx.OK | wx.ICON_ERROR)
-
-    def open_log_file(self, event):
-        self.open_path(self.log_file_path)
-
-    def open_source_directory(self, event):
-        self.open_path(self.source_directory)
-
-    def open_destination_directory(self, event):
-        self.open_path(self.destination_directory)
 
 
 class CompressorApp(wx.Frame):
@@ -323,87 +174,6 @@ class CompressorApp(wx.Frame):
         self.Centre()
         self.Show(True)
 
-    def process_file(self, file_path, dest_dir, compression_option):
-        if not self.is_supported_file(file_path):
-            return
-        dest_path = self.prepare_destination_path(file_path, dest_dir)
-        initial_size, final_size = compress_image(dest_path, compression_option)
-        new_name = get_new_filename(dest_path, compression_option)
-        os.rename(dest_path, new_name)
-        return initial_size, final_size, new_name
-
-    def is_supported_file(self, file_path):
-        supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
-        return any(file_path.lower().endswith(ext) for ext in supported_extensions)
-
-    def prepare_destination_path(self, src_path, dest_dir):
-        rel_path = os.path.relpath(src_path, self.source_directory)
-        dest_path = os.path.join(dest_dir, rel_path)
-        self.create_destination_subdirectory(dest_path)
-        shutil.copy2(src_path, dest_path)
-        return dest_path
-
-    def create_destination_subdirectory(self, dest_path):
-        dest_subdir = os.path.dirname(dest_path)
-        os.makedirs(dest_subdir, exist_ok=True)
-
-    def process_directory(self, src_dir, dest_dir, compression_option, console_output):
-        num_files_processed = 0
-        total_saved_size = 0
-        widths = [65, 20, 20, 20]  # Column widths
-        header = ["File Name", "Original Size (MB)", "New Size (MB)", "Saved Size (MB)"]
-        log_entries = [format_table_row(header, widths)]
-        log_entries.append('-' * sum(widths))  # Separator line
-        skipped_files = []  # List to keep track of skipped (unsupported) files
-
-        for root, _, files in os.walk(src_dir):
-            for file in files:
-                # Check if stop was requested
-                if self.stop_requested:
-                    return
-                src_path = os.path.join(root, file)
-                result = self.process_file(src_path, dest_dir, compression_option)
-                if result:
-                    initial_size, final_size, new_name = result
-                    saved_size = initial_size - final_size
-                    total_saved_size += saved_size
-                    num_files_processed += 1
-                    # Parsing only the file name from new_name
-                    file_name = os.path.basename(new_name)
-                    log_entry = format_table_row(
-                        [file_name, f"{bytes_to_mb(initial_size):.2f}", f"{bytes_to_mb(final_size):.2f}",
-                         f"{bytes_to_mb(saved_size):.2f}"], widths)
-                    log_entries.append(log_entry)
-                    console_entry = format_table_row(
-                        [file_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
-                         f"Final Size: {bytes_to_mb(final_size):.2f}MB",
-                         f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
-                    wx.CallAfter(console_output.AppendText, console_entry + "\n")
-                else:
-                    skipped_files.append(file)
-                # Check for stop again on end.
-                if self.stop_requested:
-                    return
-
-        if skipped_files:
-            skipped_msg = f"\n{len(skipped_files)} files were not processed (unsupported extensions):\n{', '.join(skipped_files)}"
-            log_entries.append(skipped_msg)
-            wx.CallAfter(console_output.AppendText, skipped_msg)
-            wx.CallAfter(console_output.AppendText, '\n')
-
-        wx.CallAfter(console_output.AppendText, '\nCompression ended\n')
-        wx.CallAfter(console_output.AppendText, f"\n✅Successfully compressed {num_files_processed} images.\n")
-        # Create log file
-        log_file_path = os.path.join(dest_dir, "log.txt")
-        with open(log_file_path, "w") as log_file:
-            log_file.write(f"Processed {num_files_processed} files:\n")
-            log_file.write('\n'.join(log_entries))
-            log_file.write('\n')
-            log_file.write(f"\nSuccessfully compressed {num_files_processed} images.")
-            log_file.write(f"\nIn total, we saved {bytes_to_mb(total_saved_size):.2f} MB")
-
-        return log_file_path
-
     def on_resize(self, event):
         """Reposition the GitHub GIF when the window size changes."""
         frame_width, frame_height = self.GetSize()
@@ -476,68 +246,83 @@ class CompressorApp(wx.Frame):
         self.panel.Refresh()
 
     def on_select_source(self, event):
-        dlg = wx.DirDialog(self, "Choose a source directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(self, "Select the Source Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.source_directory = dlg.GetPath()
-            print(f"Selected Source Directory: {self.source_directory}")
-            count_files_in_source(self.source_directory)
+            print(f"Source Directory: {self.source_directory}")
+            total_files, supported_extensions, unsupported_files_count = count_files_in_source(self.source_directory)
+            print(f"Total Files in Source Directory: {total_files}")
+            print("")
+            if unsupported_files_count > 0:
+                print(f"Unsupported Files in Source Directory: {unsupported_files_count}")
+                print(
+                    f"Note: Only files with the following extensions will be compressed: {', '.join(supported_extensions)}")
+                print("")
         dlg.Destroy()
 
     def on_select_destination(self, event):
-        dlg = wx.DirDialog(self, "Choose a destination directory", "", wx.DD_DEFAULT_STYLE)
+        dlg = wx.DirDialog(self, "Select a Empty Destination Directory", "", wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             self.destination_directory = dlg.GetPath()
             print(f"Selected Destination Directory: {self.destination_directory}")
-            count_files_in_destination(self.destination_directory)
+            total_files = count_files_in_destination(self.destination_directory)
+            if total_files == 0:
+                print("👌Destination Directory is empty, that is perfect!")
+                print("")
+            else:
+                print(f"Total Files in Destination Directory: {total_files}")
+                print("⚠️Warning: Please Select a Empty Destination Directory")
+                print("")
         dlg.Destroy()
 
     def on_start_compression(self, event):
+        MSG_SOURCE_DIR = 'Missing source directory. Please select a source directory.'
+        MSG_DESTINATION_DIR = 'Missing destination directory. Please select a destination directory.'
+        MSG_SOURCE_DEST_SAME = 'Source and Destination directories cannot be the same. Please select a different destination directory.'
+        MSG_SOURCE_DEST_DIF_DISK = 'DETECTED: Source and Destination directories are on different Partition/Disk. App needs Source and Destination on same Partition/Disk'
+        MSG_DEST_IS_SUBDIR_OF_SOURCE = 'The destination directory cannot be a subdirectory of the source directory.\n -Try creating a new Empty Folder outside of the Source Directory.\n -Select that new Folder as your Destination Directory'
+        MSG_DEST_DIR_NOT_EMPTY = 'The destination directory is not empty. Please select an empty directory or clear the contents of the selected directory before starting the compression.'
         # Check if source directory is not selected
         if not self.source_directory:
-            wx.MessageBox('Missing source directory. Please select a source directory.',
+            wx.MessageBox(MSG_SOURCE_DIR,
                           'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check if destination directory is not selected
         if not self.destination_directory:
-            wx.MessageBox('Missing destination directory. Please select a destination directory.',
+            wx.MessageBox(MSG_DESTINATION_DIR,
                           'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check if source and destination directories are the same
         if self.source_directory == self.destination_directory:
-            wx.MessageBox(
-                'Source and Destination directories cannot be the same. Please select a different destination directory.',
-                'Warning', wx.OK | wx.ICON_WARNING)
+            wx.MessageBox(MSG_SOURCE_DEST_SAME,
+                          'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check for different disks (or partitions)
         if os.name == 'nt':  # For Windows
             if os.path.splitdrive(self.source_directory)[0] != os.path.splitdrive(self.destination_directory)[0]:
-                wx.MessageBox(
-                    'DETECTED: Source and Destination directories are on different Partition/Disk. App needs Source and Destination on same Partition/Disk',
-                    'Warning', wx.OK | wx.ICON_WARNING)
+                wx.MessageBox(MSG_SOURCE_DEST_DIF_DISK,
+                              'Warning', wx.OK | wx.ICON_WARNING)
                 return
         else:  # For Unix-like systems (macOS, Linux)
             if os.path.ismount(self.source_directory) != os.path.ismount(self.destination_directory):
-                wx.MessageBox(
-                    'DETECTED: Source and Destination directories are on different Partition/Disk. App needs Source and Destination on same Partition/Disk',
-                    'Warning', wx.OK | wx.ICON_WARNING)
+                wx.MessageBox(MSG_SOURCE_DEST_DIF_DISK,
+                              'Warning', wx.OK | wx.ICON_WARNING)
                 return
 
         # Check if the destination directory is a subdirectory of the source directory
         if os.path.commonpath([self.source_directory, self.destination_directory]) == os.path.normpath(
                 self.source_directory):
-            wx.MessageBox(
-                'The destination directory cannot be a subdirectory of the source directory.\n -Try creating a new Empty Folder outside of the Source Directory.\n -Select that new Folder as your Destination Directory',
-                'Warning', wx.OK | wx.ICON_WARNING)
+            wx.MessageBox(MSG_DEST_IS_SUBDIR_OF_SOURCE,
+                          'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Check if the destination directory is not empty
         if os.listdir(self.destination_directory):
-            wx.MessageBox(
-                'The destination directory is not empty. Please select an empty directory or clear the contents of the selected directory before starting the compression.',
-                'Warning', wx.OK | wx.ICON_WARNING)
+            wx.MessageBox(MSG_DEST_DIR_NOT_EMPTY,
+                          'Warning', wx.OK | wx.ICON_WARNING)
             return
 
         # Proceed with disabling UI elements and starting the compression
@@ -548,20 +333,33 @@ class CompressorApp(wx.Frame):
         self.compression_choice.Disable()
         self.stop_button.Enable()
         self.stop_requested = False
-        startWorker(self.compression_done, self.run_compression)
+        # Set the GIF to loading mode
+        wx.CallAfter(self.set_gif_animation, 'loading')
+        # Force UI update
+        self.Refresh()
+        startWorker(self.compression_done, run_compression,
+                    wargs=(self.compression_choice, self.source_directory, self.destination_directory,
+                           self.console_output, self.is_stop_requested))
 
     # User request Stop Button
+    def is_stop_requested(self):
+        return self.stop_requested
+
     def request_stop(self, event):
-        print("\nStopping... Please wait. When buttons are enabled the stop process is finished.\n")
         self.stop_button.Disable()
-        self.stop_requested = True
+        logic_request_stop(self.set_stop_requested, self.console_output)
+
+    def set_stop_requested(self, value):
+        self.stop_requested = value
 
     def enable_controls(self):
         self.btn_source.Enable()
         self.btn_dest.Enable()
         self.btn_start.Enable()
         self.compression_choice.Enable()
-        self.stop_button.Disable()  # Disable the stop button since processing is done
+        self.stop_button.Disable()
+        # Force UI update
+        self.Refresh()
 
     def show_completion_dialog(self, log_file_path):
         dlg = CustomDialog(self, title="Compression Completed", log_file_path=log_file_path,
@@ -569,16 +367,6 @@ class CompressorApp(wx.Frame):
                            destination_directory=self.destination_directory)
         dlg.ShowModal()
         dlg.Destroy()
-
-    def run_compression(self):
-        compression_option = self.compression_choice.GetString(self.compression_choice.GetSelection())
-        wx.CallAfter(self.console_output.AppendText, f"Starting the compression with option: {compression_option}!\n")
-        # Set the GIF to loading mode
-        wx.CallAfter(self.set_gif_animation, 'loading')
-        # Processing images
-        log_file_path = self.process_directory(self.source_directory, self.destination_directory, compression_option,
-                                               self.console_output)
-        return log_file_path if log_file_path else "STOPPED"
 
     def compression_done(self, result):
         """Handle the results of the compression thread."""
@@ -595,16 +383,65 @@ class CompressorApp(wx.Frame):
 
             # Completed, set the GIF back to standard mode
             self.set_gif_animation('standard')
-            # Re-enable the buttons and the compression option
-            self.enable_controls()
             # Re-enable the GitHub icon clickable action
             self.gif_ctrl.Enable()
+            # Re-enable the buttons and the compression option
+            self.enable_controls()
 
 
-app = wx.App()
-CompressorApp(None, title='SmartImageShrink')
-app.MainLoop()
+# Modal Dialog to open log.txt when compression successful
+class CustomDialog(wx.Dialog):
+    def __init__(self, *args, log_file_path, source_directory, destination_directory, **kwargs):
+        super(CustomDialog, self).__init__(*args, **kwargs)
+        self.log_file_path = log_file_path
+        self.source_directory = source_directory
+        self.destination_directory = destination_directory
 
-if __name__ == "__main__":
-    # The main application logic is already initialized above. Nothing more to do here.
-    pass
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        message = wx.StaticText(self, label="Compression of images has completed!")
+        sizer.Add(message, wx.SizerFlags().Border(wx.TOP | wx.LEFT, 10))
+
+        # Button to open the log file
+        open_log_btn = wx.Button(self, label="Open Log File")
+        open_log_btn.Bind(wx.EVT_BUTTON, self.open_log_file)
+        sizer.Add(open_log_btn, wx.SizerFlags().Border(wx.ALL, 10))
+
+        # Button to open Source Directory
+        open_src_btn = wx.Button(self, label="Source Directory")
+        open_src_btn.Bind(wx.EVT_BUTTON, self.open_source_directory)
+
+        # Button to open Destination Directory
+        open_dest_btn = wx.Button(self, label="Destination Directory")
+        open_dest_btn.Bind(wx.EVT_BUTTON, self.open_destination_directory)
+
+        # Buttons Source and Destination together
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(open_src_btn, 0, wx.RIGHT, 10)
+        button_sizer.Add(open_dest_btn, 0, wx.LEFT, 10)
+        sizer.Add(button_sizer, 0, wx.CENTER | wx.ALL, 10)
+
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        sizer.Add(ok_button, wx.SizerFlags().Border(wx.ALL, 10).Center())
+
+        self.SetSizer(sizer)
+        self.Fit()
+
+    def open_log_file(self, event):
+        self.open_path(self.log_file_path)
+
+    def open_source_directory(self, event):
+        self.open_path(self.source_directory)
+
+    def open_destination_directory(self, event):
+        self.open_path(self.destination_directory)
+
+    def open_path(self, path):
+        try:
+            if platform.system() == "Windows":
+                os.startfile(path)
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.run(["open", path], check=True)
+            else:  # Assuming Linux or other Unix-like OS
+                subprocess.run(["xdg-open", path], check=True)
+        except Exception as e:
+            wx.MessageBox(f"Failed to open the path: {e}", "Error", wx.OK | wx.ICON_ERROR)
