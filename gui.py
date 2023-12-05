@@ -39,7 +39,7 @@ class CompressorApp(wx.Frame):
         # Load the icon windows
         if platform.system() == "Windows":
             self.icon = wx.Icon()
-            icon_path = "img/icon.ico"
+            icon_path = os.path.join(base_path, "img", "icon.ico")
             self.icon.CopyFromBitmap(wx.Bitmap(icon_path, wx.BITMAP_TYPE_ANY))
             self.SetIcon(self.icon)
 
