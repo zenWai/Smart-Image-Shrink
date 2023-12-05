@@ -180,7 +180,7 @@ class CompressorApp(wx.Frame):
         if not hasattr(self, "last_frame_size") or abs(self.last_frame_size[0] - frame_width) > 10 or abs(
                 self.last_frame_size[1] - frame_height) > 10:
             gif_width, gif_height = self.gif_ctrl.GetSize()
-            margin = 55  # Margin from the bottom and right edges
+            margin = 65  # Margin from the bottom and right edges
             gif_position = (frame_width - gif_width - margin, frame_height - gif_height - margin)
             self.gif_ctrl.SetPosition(gif_position)
             self.last_frame_size = (frame_width, frame_height)
@@ -358,6 +358,7 @@ class CompressorApp(wx.Frame):
         self.btn_start.Enable()
         self.compression_choice.Enable()
         self.stop_button.Disable()
+        self.stop_requested = False
         # Force UI update
         self.Refresh()
 

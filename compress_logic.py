@@ -2,9 +2,13 @@ import os
 import shutil
 import wx
 import wx.adv
+import multiprocessing
+from multiprocessing import Manager
 from PIL import Image
 
 from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file
+
+num_tasks_completed = 0
 
 
 def run_compression(compression_choice, source_directory, destination_directory, console_output, is_stop_requested):
@@ -16,7 +20,7 @@ def run_compression(compression_choice, source_directory, destination_directory,
     return log_file_path if log_file_path else "STOPPED"
 
 
-def process_directory(src_dir, dest_dir, compression_option, console_output, is_stop_requested):
+def process_directory(src_dir, dest_dir, compression_option, console_output, is_stop_requested_gui):
     num_files_processed = 0
     total_saved_size = 0
     widths = [65, 20, 20, 20]  # Column widths
@@ -24,6 +28,12 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
     log_entries = [format_table_row(header, widths)]
     log_entries.append('-' * sum(widths))  # Separator line
     skipped_files = []  # List to keep track of skipped (unsupported) files
+    tasks = []  # List to keep tasks for multiprocessing
+    global num_tasks_completed
+    num_tasks_completed = 0
+    apply_results = []  # List to store ApplyResult objects
+    manager = Manager()
+    queue = manager.Queue()
 
     for root, dirs, files in os.walk(src_dir):
         for directory in dirs:
@@ -34,33 +44,49 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
 
         for file in files:
             # Check if stop was requested
-            if is_stop_requested():
-                return
+            if is_stop_requested_gui():
+                break
             src_path = os.path.join(root, file)
             rel_path = os.path.relpath(src_path, src_dir)
             dest_path = os.path.join(dest_dir, rel_path)
             if is_supported_file(src_path):
-                result = process_file(src_path, dest_path, compression_option)
-                if result:
-                    initial_size, final_size, new_name = result
-                    saved_size = initial_size - final_size if initial_size > final_size else 0
-                    total_saved_size += saved_size
-                    num_files_processed += 1
-                    log_entry = format_table_row(
-                        [new_name, f"{bytes_to_mb(initial_size):.2f}", f"{bytes_to_mb(final_size):.2f}",
-                         f"{bytes_to_mb(saved_size):.2f}"], widths)
-                    log_entries.append(log_entry)
-                    console_entry = format_table_row(
-                        [new_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
-                         f"Final Size: {bytes_to_mb(final_size):.2f}MB",
-                         f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
-                    wx.CallAfter(console_output.AppendText, console_entry + "\n")
+                tasks.append((src_path, dest_path, compression_option, queue, widths))
             else:
                 skipped_files.append(file)
 
-            # Check for stop again on end.
-            if is_stop_requested():
-                return
+    def task_completed(result):
+        global num_tasks_completed
+        num_tasks_completed += 1
+        if num_tasks_completed == len(tasks):
+            queue.put("DONE")
+
+
+    # Process files in parallel using multiprocessing.Pool
+    with multiprocessing.Pool(processes=4) as pool:
+        for task in tasks:
+            if is_stop_requested_gui():
+                break
+            result = pool.apply_async(process_file, args=task, callback=task_completed)
+            apply_results.append(result)
+        # Continuously read from the queue and update the UI
+        while True:
+            message = queue.get()
+            if message == "DONE" or is_stop_requested_gui():
+                break
+            wx.CallAfter(console_output.AppendText, message)
+    if is_stop_requested_gui():
+        return
+
+    for result_obj in apply_results:
+        result = result_obj.get()
+        if result:
+            saved_size, initial_size, final_size, new_name = result
+            total_saved_size += saved_size
+            num_files_processed += 1
+            log_entry = format_table_row(
+                [new_name, f"{bytes_to_mb(initial_size):.2f}", f"{bytes_to_mb(final_size):.2f}",
+                 f"{bytes_to_mb(saved_size):.2f}"], widths)
+            log_entries.append(log_entry)
 
     if skipped_files:
         skipped_msg = f"\n{len(skipped_files)} files were not processed (unsupported extensions):\n{', '.join(skipped_files)}"
@@ -74,13 +100,19 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
     return log_file_path
 
 
-def process_file(src_path, dest_path, compression_option):
+def process_file(src_path, dest_path, compression_option, queue, widths):
     dest_path_new_name = get_new_file_path_new_name(dest_path, compression_option)
     compress_image(src_path, dest_path_new_name, compression_option)
     initial_size = os.path.getsize(src_path)
     final_size = os.path.getsize(dest_path_new_name)
     new_name = os.path.basename(dest_path_new_name)
-    return initial_size, final_size, new_name
+    saved_size = initial_size - final_size if initial_size > final_size else 0
+    console_entry = format_table_row(
+        [new_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
+         f"Final Size: {bytes_to_mb(final_size):.2f}MB",
+         f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
+    queue.put(console_entry + '\n')
+    return saved_size, initial_size, final_size, new_name
 
 
 def get_new_file_path_new_name(img_path, compression_option):
