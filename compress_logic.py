@@ -23,14 +23,16 @@ def run_compression(compression_choice, source_directory, destination_directory,
 def process_directory(src_dir, dest_dir, compression_option, console_output, is_stop_requested_gui):
     num_files_processed = 0
     total_saved_size = 0
+    # For logging format
     widths = [65, 20, 20, 20]  # Column widths
     header = ["File Name", "Original Size (MB)", "New Size (MB)", "Saved Size (MB)"]
     log_entries = [format_table_row(header, widths)]
     log_entries.append('-' * sum(widths))  # Separator line
     skipped_files = []  # List to keep track of skipped (unsupported) files
-    tasks = []  # List to keep tasks for multiprocessing
+    # For multiprocessing
     global num_tasks_completed
     num_tasks_completed = 0
+    tasks = []  # List to keep tasks for multiprocessing
     apply_results = []  # List to store ApplyResult objects
     manager = Manager()
     queue = manager.Queue()
@@ -74,6 +76,7 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
             if message == "DONE" or is_stop_requested_gui():
                 break
             wx.CallAfter(console_output.AppendText, message)
+    # Stops the compression process
     if is_stop_requested_gui():
         return
 
