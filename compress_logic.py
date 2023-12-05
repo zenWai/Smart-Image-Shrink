@@ -1,6 +1,5 @@
 import os
 import shutil
-import wx
 import wx.adv
 import multiprocessing
 from multiprocessing import Manager
@@ -61,7 +60,6 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
         num_tasks_completed += 1
         if num_tasks_completed == len(tasks):
             queue.put("DONE")
-
 
     # Process files in parallel using multiprocessing.Pool
     with multiprocessing.Pool(processes=4) as pool:

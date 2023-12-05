@@ -1,4 +1,5 @@
-import wx
+from multiprocessing import freeze_support
+
 from gui import CompressorApp
 import wx.adv
 from PIL import Image
@@ -13,4 +14,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()

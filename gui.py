@@ -3,8 +3,6 @@ import platform
 import subprocess
 import sys
 import webbrowser
-
-import wx
 import wx.adv
 import wx.lib.buttons as buttons
 from wx.lib.delayedresult import startWorker
@@ -36,12 +34,7 @@ class CompressorApp(wx.Frame):
         self.stop_requested = False
 
         # Determine if we're running as a bundled executable
-        if getattr(sys, 'frozen', False):
-            # If running as bundled executable, use the current directory
-            base_path = os.path.dirname(sys.executable)
-        else:
-            # If running as a script, use the directory of the script
-            base_path = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(os.path.abspath(__file__))
 
         # Load the icon windows
         if platform.system() == "Windows":
