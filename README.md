@@ -1,5 +1,5 @@
-# SmartImageProcessor
-SmartImageProcessor Application offers an efficient solution for compressing images while meticulously preserving their quality, metadata and data integrity.
+# SmartImageShrink
+SmartImageShrink Application offers an efficient solution for compressing images while meticulously preserving their quality, metadata and data integrity.
 
 It's designed to be both user-friendly and powerful, employing state-of-the-art technologies to ensure optimal results of compression the user have options that range from quality retention to agressive reducing size.
 
@@ -7,7 +7,7 @@ Supports .tif .tiff .jpg .jpeg .png and high quality bit-depth 32-16.
 
 # 
 
-![Gif use-case of SmartImageProcessor](https://github.com/zenWai/CompressImages-python/assets/124523559/1b25040a-1420-4295-b2c1-63bbe07b1bd4)
+![Gif use-case of SmartImageShrink](https://github.com/zenWai/CompressImages-python/assets/124523559/1b25040a-1420-4295-b2c1-63bbe07b1bd4)
 
 
 ### Running on macOS:
@@ -48,5 +48,5 @@ pip install -r requirements.txt
 ```
 ### Run the script using:
 ```
-python3 compress_images.py
+python3 main.py
 ```
