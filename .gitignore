@@ -10,3 +10,4 @@ compress_images_macOS_arm64.app
 compress_images_windows.exe
 /main.spec
 /your_script.spec
+/pyinstaller.txt
