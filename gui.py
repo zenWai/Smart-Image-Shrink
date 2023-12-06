@@ -12,7 +12,7 @@ from compress_logic import request_stop as logic_request_stop
 from helpers import count_files_in_source, count_files_in_destination
 
 COMPRESSION_OPTIONS = [
-    'Compress with No Data Loss',
+    'Compress with Quality Retention',
     'Compress Size x2',
     'Compress Size x4',
     'Compress Size x8',
@@ -56,10 +56,10 @@ class CompressorApp(wx.Frame):
             "in a Destination Directory.\n\n"
             "✳️ Select the Source Directory.\n"
             "✳️ Select the Destination Directory.\n"
-            "✳️ Pick a Compression Option. (Default: 'Compress with No Data Loss').\n"
+            "✳️ Pick a Compression Option. (Default: 'Compress with Quality Retention').\n"
             "✳️ Click 'Start Compression'.\n\n"
             "⭐Compression Options:\n"
-            "   - To Compress with Top-Tier Quality retention use ➡️'Compress with No Data Loss'\n"
+            "   - To Compress with Top-Tier Quality retention use ➡️'Compress with Quality Retention'\n"
             "   - To Compress and Greatly Decrease the Image Size use ➡️ 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
             "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
         )
