@@ -3,7 +3,7 @@ import platform
 
 
 def is_supported_file(file_path):
-    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp']
+    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.bmp', '.dib']
     return any(file_path.lower().endswith(ext) for ext in supported_extensions)
 
 
@@ -49,27 +49,30 @@ def count_files_in_destination(directory):
 
 
 def count_files_in_source(directory):
-    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp']
+    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.bmp', '.dib']
     total_files = 0
     unsupported_files_count = 0
-
+    unsupported_files = []
+    print("========================================")
     for root, _, files in os.walk(directory):
         for file in files:
             total_files += 1
-            print(f"File {total_files}: {file}")
+            print(f"[*] File {total_files}: {file}")
             if not any(file.lower().endswith(ext) for ext in supported_extensions):
                 unsupported_files_count += 1
-    return total_files, supported_extensions, unsupported_files_count
+                unsupported_files.append(file)
+    return total_files, supported_extensions, unsupported_files_count, unsupported_files
 
 
 def create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size):
     # Create log file
     log_file_path = os.path.join(dest_dir, "log.txt")
     with open(log_file_path, "w") as log_file:
-        log_file.write(f"Processed {num_files_processed} files:\n")
+        log_file.write(f"[*] Processed {num_files_processed} files:\n")
+        log_file.write('========================================\n')
         log_file.write('\n'.join(log_entries))
-        log_file.write('\n')
-        log_file.write(f"\nSuccessfully compressed {num_files_processed} images.")
-        log_file.write(f"\nIn total, we saved {bytes_to_mb(total_saved_size):.2f} MB")
+        log_file.write('\n========================================')
+        log_file.write(f"\n[*] Successfully compressed {num_files_processed} images.")
+        log_file.write(f"\n[*] In total, we saved {bytes_to_mb(total_saved_size):.2f} MB")
 
     return log_file_path

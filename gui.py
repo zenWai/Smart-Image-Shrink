@@ -243,29 +243,31 @@ class CompressorApp(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.source_directory = dlg.GetPath()
             print(f"Source Directory: {self.source_directory}")
-            total_files, supported_extensions, unsupported_files_count = count_files_in_source(self.source_directory)
+            total_files, supported_extensions, unsupported_files_count, unsupported_files = count_files_in_source(self.source_directory)
             print(f"Total Files in Source Directory: {total_files}")
             print("")
             if unsupported_files_count > 0:
-                print(f"Unsupported Files in Source Directory: {unsupported_files_count}")
+                print(f"[⚠] Unsupported Files in Source Directory: {unsupported_files_count} - {', '.join(unsupported_files)}")
                 print(
-                    f"Note: Only files with the following extensions will be compressed: {', '.join(supported_extensions)}")
+                    f"[⚠] Only files with the following extensions will be compressed: {', '.join(supported_extensions)}")
                 print("")
+            print("========================================")
         dlg.Destroy()
 
     def on_select_destination(self, event):
         dlg = wx.DirDialog(self, "Select a Empty Destination Directory", "", wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             self.destination_directory = dlg.GetPath()
-            print(f"Selected Destination Directory: {self.destination_directory}")
+            print(f"Destination Directory: {self.destination_directory}")
+            print("========================================")
             total_files = count_files_in_destination(self.destination_directory)
             if total_files == 0:
-                print("👌Destination Directory is empty, that is perfect!")
-                print("")
+                print("[*] Destination Directory is empty, that is perfect!")
+                print("========================================")
             else:
-                print(f"Total Files in Destination Directory: {total_files}")
-                print("⚠️Warning: Please Select a Empty Destination Directory")
-                print("")
+                print(f"[⚠] Total Files in Destination Directory: {total_files}")
+                print("[⚠] Please Select a Empty Destination Directory")
+                print("========================================")
         dlg.Destroy()
 
     def on_start_compression(self, event):
@@ -368,7 +370,7 @@ class CompressorApp(wx.Frame):
         if result_value:
             # If compression was stopped prematurely
             if result_value == "STOPPED":
-                print("Compression was stopped by the user. Compressed files might "
+                print("[⚠] Compression was stopped by the user. Compressed files might "
                       "be corrupted due to interruption.\n\n")
             else:
                 # Show the custom dialog

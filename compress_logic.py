@@ -12,7 +12,7 @@ num_tasks_completed = 0
 
 def run_compression(compression_choice, source_directory, destination_directory, console_output, is_stop_requested):
     compression_option = compression_choice.GetString(compression_choice.GetSelection())
-    wx.CallAfter(console_output.AppendText, f"Starting the compression with option: {compression_option}!\n")
+    wx.CallAfter(console_output.AppendText, f"[▶] Starting the compression with option: {compression_option}!\n\n")
     # Processing images
     log_file_path = process_directory(source_directory, destination_directory, compression_option,
                                       console_output, is_stop_requested)
@@ -23,7 +23,7 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
     num_files_processed = 0
     total_saved_size = 0
     # For logging format
-    widths = [65, 20, 20, 20]  # Column widths
+    widths = [115, 20, 20, 20]  # Column widths
     header = ["File Name", "Original Size (MB)", "New Size (MB)", "Saved Size (MB)"]
     log_entries = [format_table_row(header, widths)]
     log_entries.append('-' * sum(widths))  # Separator line
@@ -85,18 +85,19 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
             total_saved_size += saved_size
             num_files_processed += 1
             log_entry = format_table_row(
-                [new_name, f"{bytes_to_mb(initial_size):.2f}", f"{bytes_to_mb(final_size):.2f}",
+                ['[+] ' + new_name, f"{bytes_to_mb(initial_size):.2f}", f"{bytes_to_mb(final_size):.2f}",
                  f"{bytes_to_mb(saved_size):.2f}"], widths)
             log_entries.append(log_entry)
 
     if skipped_files:
-        skipped_msg = f"\n{len(skipped_files)} files were not processed (unsupported extensions):\n{', '.join(skipped_files)}"
+        skipped_msg = f"\n[⚠] {len(skipped_files)} files were not processed (unsupported extensions) - {', '.join(skipped_files)}"
         log_entries.append(skipped_msg)
         wx.CallAfter(console_output.AppendText, skipped_msg)
         wx.CallAfter(console_output.AppendText, '\n')
 
     wx.CallAfter(console_output.AppendText, '\nCompression ended\n')
-    wx.CallAfter(console_output.AppendText, f"\n✅Successfully compressed {num_files_processed} images.\n")
+    wx.CallAfter(console_output.AppendText, f"✅Successfully compressed {num_files_processed} images.\n")
+    wx.CallAfter(console_output.AppendText, "========================================\n")
     log_file_path = create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size)
     return log_file_path
 
@@ -109,7 +110,7 @@ def process_file(src_path, dest_path, compression_option, queue, widths):
     new_name = os.path.basename(dest_path_new_name)
     saved_size = initial_size - final_size if initial_size > final_size else 0
     console_entry = format_table_row(
-        [new_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
+        ['[+] ' + new_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
          f"Final Size: {bytes_to_mb(final_size):.2f}MB",
          f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
     queue.put(console_entry + '\n')
@@ -173,11 +174,15 @@ def resize_multi_frame_image(img, compression_option):
 
 def save_image_and_compress(img, img_path):
     if img_path.lower().endswith('.png'):
-        img.save(img_path, optimize=False, compress_level=9)
-    elif img_path.lower().endswith(('.jpg', '.jpeg')):
+        img.save(img_path, optimize=True, compress_level=9)
+    elif img_path.lower().endswith('.jpg'):
         img.save(img_path, quality=100, progressive=True)
+    elif img_path.lower().endswith('.jpeg'):
+        img.save(img_path, optimize=True, quality='keep', progressive=True)
     elif img_path.lower().endswith('.webp'):
         img.save(img_path, quality=100, lossless=True, method=6)
+    elif img_path.lower().endswith('.bmp', '.dib'):
+        img.save(img_path, compression=1)
     elif img_path.lower().endswith(('.tif', '.tiff')):
         metadata = TiffImagePlugin.ImageFileDirectory_v2()
         if hasattr(img, "tag_v2"):
@@ -192,5 +197,7 @@ def save_image_and_compress(img, img_path):
 
 def request_stop(stop_flag_callback, console_output):
     wx.CallAfter(console_output.AppendText,
-                 "\nStopping... Please wait. When buttons are enabled the stop process is finished.\n")
+                 "\n========================================\n")
+    wx.CallAfter(console_output.AppendText,
+                 "\n[⚠] Stopping... Please wait. The stop process has finished when the UI buttons are active\n")
     stop_flag_callback(True)
