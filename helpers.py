@@ -71,21 +71,20 @@ def count_files_in_source(directory, console_output):
 
 
 def log_to_console(console_output, text, color=None, include_timestamp=True):
-    if include_timestamp:
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        formatted_text = f"{timestamp} - {text}"
-    else:
-        formatted_text = text
-
     # Function to update the console_output in a thread-safe manner
     def update_console():
         if color is not None:
             console_output.SetDefaultStyle(wx.TextAttr(color))
         console_output.AppendText(formatted_text + "\n")
         if color is not None:
-            console_output.SetDefaultStyle(wx.TextAttr(wx.WHITE))  # Reset to white color
+            console_output.SetDefaultStyle(wx.TextAttr(wx.WHITE))  # Reset color
 
-    # Ensure the update is done in the main GUI thread
+    if include_timestamp:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        formatted_text = f"{timestamp} - {text}"
+    else:
+        formatted_text = text
+
     wx.CallAfter(update_console)
 
 
