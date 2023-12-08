@@ -3,8 +3,19 @@ import platform
 
 
 def is_supported_file(file_path):
-    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
+    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp']
     return any(file_path.lower().endswith(ext) for ext in supported_extensions)
+
+
+def extract_frames(img):
+    frames = []
+    while True:
+        try:
+            frames.append(img.copy())
+            img.seek(img.tell() + 1)
+        except EOFError:
+            break  # End of frames
+    return frames
 
 
 def is_multi_frame(img):
@@ -38,7 +49,7 @@ def count_files_in_destination(directory):
 
 
 def count_files_in_source(directory):
-    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
+    supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp']
     total_files = 0
     unsupported_files_count = 0
 

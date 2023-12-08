@@ -5,7 +5,7 @@ import multiprocessing
 from multiprocessing import Manager
 from PIL import Image, TiffImagePlugin
 
-from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file, is_multi_frame
+from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file, is_multi_frame, extract_frames
 
 num_tasks_completed = 0
 
@@ -171,22 +171,13 @@ def resize_multi_frame_image(img, compression_option):
     return resized_frames
 
 
-def extract_frames(img):
-    frames = []
-    while True:
-        try:
-            frames.append(img.copy())
-            img.seek(img.tell() + 1)
-        except EOFError:
-            break  # End of frames
-    return frames
-
-
 def save_image_and_compress(img, img_path):
     if img_path.lower().endswith('.png'):
-        img.save(img_path, optimize=True)
+        img.save(img_path, optimize=False, compress_level=9)
     elif img_path.lower().endswith(('.jpg', '.jpeg')):
-        img.save(img_path, quality=95)
+        img.save(img_path, quality=100, progressive=True)
+    elif img_path.lower().endswith('.webp'):
+        img.save(img_path, quality=100, lossless=True, method=6)
     elif img_path.lower().endswith(('.tif', '.tiff')):
         metadata = TiffImagePlugin.ImageFileDirectory_v2()
         if hasattr(img, "tag_v2"):
