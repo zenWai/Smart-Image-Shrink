@@ -7,6 +7,14 @@ def is_supported_file(file_path):
     return any(file_path.lower().endswith(ext) for ext in supported_extensions)
 
 
+def is_multi_frame(img):
+    try:
+        return img.n_frames > 1
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
+
 def bytes_to_mb(size_in_bytes):
     if platform.system() == "Windows":
         # Windows Use binary system but labels it as MB (1 MB = 1024 * 1024 bytes)

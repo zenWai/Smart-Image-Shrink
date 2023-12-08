@@ -3,9 +3,9 @@ import shutil
 import wx.adv
 import multiprocessing
 from multiprocessing import Manager
-from PIL import Image
+from PIL import Image, TiffImagePlugin
 
-from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file
+from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file, is_multi_frame
 
 num_tasks_completed = 0
 
@@ -130,12 +130,22 @@ def get_new_file_path_new_name(img_path, compression_option):
 
 
 def compress_image(src_path, dest_path_new_name, compression_option):
+    # copy2 for metadata and never open source
     shutil.copy2(src_path, dest_path_new_name)
     try:
         with Image.open(dest_path_new_name) as img:
             if 'Compress Size' in compression_option:
-                img = resize_image(img, compression_option)
-            save_image_and_compress(img, dest_path_new_name)
+                if is_multi_frame(img):
+                    resized_frames = resize_multi_frame_image(img, compression_option)
+                    save_image_and_compress(resized_frames, dest_path_new_name)
+                else:
+                    img = resize_image(img, compression_option)
+                    save_image_and_compress(img, dest_path_new_name)
+            else:
+                if is_multi_frame(img):
+                    save_image_and_compress(extract_frames(img), dest_path_new_name)
+                else:
+                    save_image_and_compress(img, dest_path_new_name)
             del img
     except Exception as e:
         print(f"Error processing {src_path}: {e}")
@@ -146,8 +156,30 @@ def resize_image(img, compression_option):
     new_width = int(img.width / factor)
     aspect_ratio = img.height / img.width
     new_height = int(aspect_ratio * new_width)
-    resampling_method = Image.Resampling.LANCZOS if img.mode in ["L", "RGB", "RGBA"] else Image.NEAREST
+    resampling_method = Image.Resampling.LANCZOS if img.mode in ["L", "RGB", "RGBA"] else Image.Resampling.NEAREST
     return img.resize((new_width, new_height), resampling_method)
+
+
+def resize_multi_frame_image(img, compression_option):
+    resized_frames = []
+    while True:
+        try:
+            resized_frames.append(resize_image(img.copy(), compression_option))
+            img.seek(img.tell() + 1)
+        except EOFError:
+            break  # End of frames
+    return resized_frames
+
+
+def extract_frames(img):
+    frames = []
+    while True:
+        try:
+            frames.append(img.copy())
+            img.seek(img.tell() + 1)
+        except EOFError:
+            break  # End of frames
+    return frames
 
 
 def save_image_and_compress(img, img_path):
@@ -156,7 +188,15 @@ def save_image_and_compress(img, img_path):
     elif img_path.lower().endswith(('.jpg', '.jpeg')):
         img.save(img_path, quality=95)
     elif img_path.lower().endswith(('.tif', '.tiff')):
-        img.save(img_path, compression='tiff_lzw')
+        metadata = TiffImagePlugin.ImageFileDirectory_v2()
+        if hasattr(img, "tag_v2"):
+            metadata = img.tag_v2
+        # multi-frame
+        if isinstance(img, list):
+            img[0].save(img_path, save_all=True, append_images=img[1:], compression='tiff_lzw', tiffinfo=metadata)
+        # single frame
+        else:
+            img.save(img_path, compression='tiff_lzw', tiffinfo=metadata)
 
 
 def request_stop(stop_flag_callback, console_output):
