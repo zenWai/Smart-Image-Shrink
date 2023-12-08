@@ -1,5 +1,7 @@
 import os
 import platform
+from datetime import datetime
+import wx
 
 
 def is_supported_file(file_path):
@@ -48,20 +50,43 @@ def count_files_in_destination(directory):
     return total_files
 
 
-def count_files_in_source(directory):
+def count_files_in_source(directory, console_output):
     supported_extensions = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.bmp', '.dib']
     total_files = 0
     unsupported_files_count = 0
     unsupported_files = []
-    print("========================================")
+    log_to_console(console_output, "========================================", None, False)
     for root, _, files in os.walk(directory):
         for file in files:
             total_files += 1
-            print(f"[*] File {total_files}: {file}")
-            if not any(file.lower().endswith(ext) for ext in supported_extensions):
+            if any(file.lower().endswith(ext) for ext in supported_extensions):
+                message = f'[*] File {total_files}: {file}'
+                log_to_console(console_output, message, wx.GREEN, False)
+            else:
                 unsupported_files_count += 1
                 unsupported_files.append(file)
+                message = f'[!] Unsupported File {total_files}: {file}'
+                log_to_console(console_output, message, wx.RED, False)
     return total_files, supported_extensions, unsupported_files_count, unsupported_files
+
+
+def log_to_console(console_output, text, color=None, include_timestamp=True):
+    if include_timestamp:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        formatted_text = f"{timestamp} - {text}"
+    else:
+        formatted_text = text
+
+    # Function to update the console_output in a thread-safe manner
+    def update_console():
+        if color is not None:
+            console_output.SetDefaultStyle(wx.TextAttr(color))
+        console_output.AppendText(formatted_text + "\n")
+        if color is not None:
+            console_output.SetDefaultStyle(wx.TextAttr(wx.WHITE))  # Reset to white color
+
+    # Ensure the update is done in the main GUI thread
+    wx.CallAfter(update_console)
 
 
 def create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size):

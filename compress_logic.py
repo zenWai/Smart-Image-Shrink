@@ -5,14 +5,16 @@ import multiprocessing
 from multiprocessing import Manager
 from PIL import Image, TiffImagePlugin
 
-from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file, is_multi_frame, extract_frames
+from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file, is_multi_frame, extract_frames, \
+    log_to_console
 
 num_tasks_completed = 0
 
 
 def run_compression(compression_choice, source_directory, destination_directory, console_output, is_stop_requested):
     compression_option = compression_choice.GetString(compression_choice.GetSelection())
-    wx.CallAfter(console_output.AppendText, f"[▶] Starting the compression with option: {compression_option}!\n\n")
+    MSG_START_COMPRESSION = f"[▶] Starting the compression with option: {compression_option}!\n"
+    log_to_console(console_output, MSG_START_COMPRESSION, wx.BLUE, True)
     # Processing images
     log_file_path = process_directory(source_directory, destination_directory, compression_option,
                                       console_output, is_stop_requested)
@@ -73,7 +75,7 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
             message = queue.get()
             if message == "DONE" or is_stop_requested_gui():
                 break
-            wx.CallAfter(console_output.AppendText, message)
+            log_to_console(console_output, message, wx.GREEN, True)
     # Stops the compression process
     if is_stop_requested_gui():
         return
@@ -92,12 +94,11 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
     if skipped_files:
         skipped_msg = f"\n[⚠] {len(skipped_files)} files were not processed (unsupported extensions) - {', '.join(skipped_files)}"
         log_entries.append(skipped_msg)
-        wx.CallAfter(console_output.AppendText, skipped_msg)
-        wx.CallAfter(console_output.AppendText, '\n')
+        log_to_console(console_output, skipped_msg, wx.RED, True)
 
-    wx.CallAfter(console_output.AppendText, '\nCompression ended\n')
-    wx.CallAfter(console_output.AppendText, f"✅Successfully compressed {num_files_processed} images.\n")
-    wx.CallAfter(console_output.AppendText, "========================================\n")
+    MSG_COMPRESSION_ENDED = f'Compression ended\n✅Successfully compressed {num_files_processed} images.\n '
+    log_to_console(console_output, MSG_COMPRESSION_ENDED, wx.GREEN, True)
+    log_to_console(console_output, "========================================\n", None, False)
     log_file_path = create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size)
     return log_file_path
 
@@ -113,7 +114,7 @@ def process_file(src_path, dest_path, compression_option, queue, widths):
         ['[+] ' + new_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
          f"Final Size: {bytes_to_mb(final_size):.2f}MB",
          f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
-    queue.put(console_entry + '\n')
+    queue.put(console_entry)
     return saved_size, initial_size, final_size, new_name
 
 
@@ -196,8 +197,7 @@ def save_image_and_compress(img, img_path):
 
 
 def request_stop(stop_flag_callback, console_output):
-    wx.CallAfter(console_output.AppendText,
-                 "\n========================================\n")
-    wx.CallAfter(console_output.AppendText,
-                 "\n[⚠] Stopping... Please wait. The stop process has finished when the UI buttons are active\n")
+    MSG_STOPPING = "[⚠] Stopping... Please wait. The stop process has finished when the UI buttons are active"
+    log_to_console(console_output, "\n========================================", wx.RED, False)
+    log_to_console(console_output, MSG_STOPPING, wx.RED, True)
     stop_flag_callback(True)
