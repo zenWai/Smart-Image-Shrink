@@ -31,6 +31,7 @@ class CompressorApp(wx.Frame):
         self.panel = wx.Panel(self)
         self.last_github_click_time = 0
         self.stop_requested = False
+        self.instance_of_app = self
 
         # Determine if we're running as a bundled executable
         base_path = os.path.dirname(os.path.abspath(__file__))
@@ -241,37 +242,47 @@ class CompressorApp(wx.Frame):
         dlg = wx.DirDialog(self, "Select the Source Directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.source_directory = dlg.GetPath()
+            (total_files,
+             supported_extensions,
+             unsupported_files_count,
+             unsupported_files
+             ) = count_files_in_source(self.source_directory, self.console_output)
+            MSG_SEPARATOR = "========================================\n"
             MSG_SRC_DIR = f"Source Directory: {self.source_directory}\n"
-            log_to_console(self.console_output, MSG_SRC_DIR, None, False)
-            total_files, supported_extensions, unsupported_files_count, unsupported_files = count_files_in_source(self.source_directory, self.console_output)
             MSG_TOTAL_FILES = f"Total Files in Source Directory: {total_files}"
+            MSG_UNSUPPORTED_FILES = f"[⚠] Unsupported Files in Source Directory: {unsupported_files_count} - {', '.join(unsupported_files)}"
+            MSG_UNSUPPORTED_FILES_WARNING = f"[⚠] Only files with the following extensions will be compressed: {', '.join(supported_extensions)}"
+            MSG_SELECT_SOURCE_WITH_SUP_EXT = "[⚠] Please select a Source Directory with Supported Files\n"
+            log_to_console(self.console_output, MSG_SRC_DIR, None, False)
             log_to_console(self.console_output, MSG_TOTAL_FILES, None, False)
             if unsupported_files_count > 0:
-                MSG_UNSUPPORTED_FILES = f"[⚠] Unsupported Files in Source Directory: {unsupported_files_count} - {', '.join(unsupported_files)}"
                 log_to_console(self.console_output, MSG_UNSUPPORTED_FILES, None, False)
-                MSG_UNSUPPORTED_FILES_WARNING = f"[⚠] Only files with the following extensions will be compressed: {', '.join(supported_extensions)}"
                 log_to_console(self.console_output, MSG_UNSUPPORTED_FILES_WARNING, wx.RED, False)
-            log_to_console(self.console_output, "========================================\n", None, False)
+            if unsupported_files_count == total_files:
+                log_to_console(self.console_output, MSG_SELECT_SOURCE_WITH_SUP_EXT, wx.RED, False)
+            log_to_console(self.console_output, MSG_SEPARATOR, None, False)
         dlg.Destroy()
 
     def on_select_destination(self, event):
         dlg = wx.DirDialog(self, "Select a Empty Destination Directory", "", wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             self.destination_directory = dlg.GetPath()
-            MSG_DEST_DIR = f"Destination Directory: {self.destination_directory}"
-            log_to_console(self.console_output, MSG_DEST_DIR, None, False)
-            log_to_console(self.console_output, "========================================", None, False)
             total_files = count_files_in_destination(self.destination_directory)
+            MSG_SEPARATOR = "========================================"
+            MSG_DEST_DIR = f"Destination Directory: {self.destination_directory}"
+            MSG_DEST_DIR_NOT_EMPTY = f"[⚠] Total Files in Destination Directory: {total_files}"
+            MSG_DEST_DIR_NOT_EMPTY_WARNING = "[⚠] Please Select a Empty Destination Directory"
+            MSG_DEST_DIR_EMPTY = "[*] Status check complete: Destination directory is appropriately empty."
+
+            log_to_console(self.console_output, MSG_DEST_DIR, None, False)
+            log_to_console(self.console_output, MSG_SEPARATOR, None, False)
             if total_files == 0:
-                MSG_DEST_DIR_EMPTY = "[*] Destination Directory is empty, that is perfect!"
                 log_to_console(self.console_output, MSG_DEST_DIR_EMPTY, wx.GREEN, False)
-                log_to_console(self.console_output, "========================================", None, False)
+                log_to_console(self.console_output, MSG_SEPARATOR, None, False)
             else:
-                MSG_DEST_DIR_NOT_EMPTY = f"[⚠] Total Files in Destination Directory: {total_files}"
-                MSG_DEST_DIR_NOT_EMPTY_WARNING = "[⚠] Please Select a Empty Destination Directory"
                 log_to_console(self.console_output, MSG_DEST_DIR_NOT_EMPTY, None, False)
                 log_to_console(self.console_output, MSG_DEST_DIR_NOT_EMPTY_WARNING, wx.RED, False)
-                log_to_console(self.console_output, "========================================", None, False)
+                log_to_console(self.console_output, MSG_SEPARATOR, None, False)
         dlg.Destroy()
 
     def on_start_compression(self, event):

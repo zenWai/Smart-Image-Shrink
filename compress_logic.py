@@ -6,16 +6,32 @@ from multiprocessing import Manager
 from PIL import Image, TiffImagePlugin
 
 from helpers import format_table_row, bytes_to_mb, create_log_file, is_supported_file, is_multi_frame, extract_frames, \
-    log_to_console
+    log_to_console, group_tiff_files, merge_tiffs, get_channel_range
 
 num_tasks_completed = 0
 
 
 def run_compression(compression_choice, source_directory, destination_directory, console_output, is_stop_requested):
     compression_option = compression_choice.GetString(compression_choice.GetSelection())
-    MSG_START_COMPRESSION = f"[▶] Starting the compression with option: {compression_option}!\n"
-    log_to_console(console_output, MSG_START_COMPRESSION, wx.BLUE, True)
+    MSG_START_COMPRESSION = f"[▶] Compression with: {compression_option}!\n"
+    log_to_console(console_output, MSG_START_COMPRESSION, None, True)
     # Processing images
+    grouped_files = group_tiff_files(source_directory)
+    if grouped_files:
+        log_to_console(console_output, 'Merging files', None, True)
+        for base_name, files in grouped_files.items():
+            files = [os.path.join(source_directory, path) for path in files]  # Complete the file paths
+            file_names = [os.path.basename(path) for path in files]  # names
+            # Get the channel range
+            channel_range = get_channel_range(files)
+            if channel_range:
+                min_channel, max_channel = channel_range
+                output_filename = f"{base_name}_ch{min_channel:02d}to{max_channel:02d}_compressed.tif"
+            else:
+                output_filename = f"{base_name}_compressed.tif"
+            output_path = os.path.join(destination_directory, output_filename)
+            merge_tiffs(files, output_path)
+            log_to_console(console_output, f'[+] {file_names} Merged', wx.GREEN, True)
     log_file_path = process_directory(source_directory, destination_directory, compression_option,
                                       console_output, is_stop_requested)
     return log_file_path if log_file_path else "STOPPED"
@@ -105,7 +121,9 @@ def process_directory(src_dir, dest_dir, compression_option, console_output, is_
 
 def process_file(src_path, dest_path, compression_option, queue, widths):
     dest_path_new_name = get_new_file_path_new_name(dest_path, compression_option)
+
     compress_image(src_path, dest_path_new_name, compression_option)
+
     initial_size = os.path.getsize(src_path)
     final_size = os.path.getsize(dest_path_new_name)
     new_name = os.path.basename(dest_path_new_name)
@@ -174,26 +192,27 @@ def resize_multi_frame_image(img, compression_option):
 
 
 def save_image_and_compress(img, img_path):
-    if img_path.lower().endswith('.png'):
-        img.save(img_path, optimize=True, compress_level=9)
-    elif img_path.lower().endswith('.jpg'):
-        img.save(img_path, quality=100, progressive=True)
-    elif img_path.lower().endswith('.jpeg'):
-        img.save(img_path, optimize=True, quality='keep', progressive=True)
-    elif img_path.lower().endswith('.webp'):
-        img.save(img_path, quality=100, lossless=True, method=6)
-    elif img_path.lower().endswith('.bmp', '.dib'):
-        img.save(img_path, compression=1)
-    elif img_path.lower().endswith(('.tif', '.tiff')):
-        metadata = TiffImagePlugin.ImageFileDirectory_v2()
-        if hasattr(img, "tag_v2"):
-            metadata = img.tag_v2
-        # multi-frame
-        if isinstance(img, list):
-            img[0].save(img_path, save_all=True, append_images=img[1:], compression='tiff_lzw', tiffinfo=metadata)
-        # single frame
+    try:
+        if img_path.lower().endswith('.png'):
+            img.save(img_path, optimize=True, compress_level=9)
+        elif img_path.lower().endswith(('.jpg', '.jpeg')):
+            img.save(img_path, optimize=True, quality=95, progressive=True)
+        elif img_path.lower().endswith('.webp'):
+            img.save(img_path, quality=95, lossless=True, method=6)
+        elif img_path.lower().endswith(('.bmp', '.dib')):
+            img.save(img_path)
+        elif img_path.lower().endswith(('.tif', '.tiff')):
+            # Handle TIFF metadata
+            metadata = img.info.get("tag_v2", TiffImagePlugin.ImageFileDirectory_v2())
+            # Handle multi-frame TIFF
+            if isinstance(img, list):
+                img[0].save(img_path, save_all=True, append_images=img[1:], compression='tiff_lzw', tiffinfo=metadata)
+            else:
+                img.save(img_path, compression='tiff_lzw', tiffinfo=metadata)
         else:
-            img.save(img_path, compression='tiff_lzw', tiffinfo=metadata)
+            print(f"Unsupported file format for {img_path}")
+    except Exception as e:
+        print(f"Error saving {img_path}: {e}")
 
 
 def request_stop(stop_flag_callback, console_output):
