@@ -12,11 +12,14 @@ def is_supported_file(file_path):
     return any(file_path.lower().endswith(ext) for ext in supported_extensions)
 
 
-def extract_frames(img):
+def extract_frames_with_metadata(img):
     frames = []
     while True:
         try:
-            frames.append(img.copy())
+            frame = img.copy()
+            if hasattr(img, "tag_v2"):
+                frame.tag_v2 = img.tag_v2
+            frames.append(frame)
             img.seek(img.tell() + 1)
         except EOFError:
             break  # End of frames
@@ -29,15 +32,6 @@ def is_multi_frame(img):
     except Exception as e:
         print(f"Error: {e}")
         return False
-
-
-def is_multi_frame_quick_peek(image_path):
-    with Image.open(image_path) as img:
-        try:
-            img.seek(1)  # Try to move to the second frame of the image
-            return True  # If successful, it's a multi-frame image
-        except EOFError:
-            return False  # If an EOFError occurs, it's a single-frame image
 
 
 def bytes_to_mb(size_in_bytes):
@@ -82,40 +76,70 @@ def count_files_in_source(directory, console_output):
     return total_files, supported_extensions, unsupported_files_count, unsupported_files
 
 
-def group_tiff_files(directory):
+def collect_multi_frame_tiff_groups(directory):
+    def extract_channel_number(filename):
+        match = re.search(r'_ch(\d+)', filename)
+        return int(match.group(1)) if match else -1
+
+    def sort_files_by_channel(files):
+        return sorted(files, key=extract_channel_number)
     # Regex to match files ending with _chXX.tif
     pattern = re.compile(r'(.+)_ch\d\d\.tif$')
     groups = defaultdict(list)
 
-    for filename in os.listdir(directory):
-        if filename.lower().endswith('.tif'):
-            match = pattern.match(filename)
-            if match:
-                # Group files by the base name
-                base_name = match.group(1)
-                groups[base_name].append(filename)
+    for root, dirs, files in os.walk(directory):
+        for filename in files:
+            if filename.lower().endswith('.tif'):
+                match = pattern.match(filename)
+                if match:
+                    full_path = os.path.join(root, filename)
+                    base_name = match.group(1)
+                    groups[base_name].append(full_path)
 
-    # Filter out groups with only one file
-    grouped_files = {base: files for base, files in groups.items() if len(files) > 1}
+    # Filter out groups with only one file and sort the files in each group
+    grouped_files = {base: sort_files_by_channel(files) for base, files in groups.items() if len(files) > 1}
 
     return grouped_files
 
 
-def merge_tiffs(file_paths, output_path):
-    # Open the first image and create a list to hold the rest of the images
-    with Image.open(file_paths[0]) as first_image:
-        metadata = TiffImagePlugin.ImageFileDirectory_v2()
-        if hasattr(first_image, "tag_v2"):
-            metadata = first_image.tag_v2
-        frames = [first_image.copy()]
+def resize_image(img, compression_option):
+    factor = int(compression_option.split(' ')[-1][1:])
+    new_width = int(img.width / factor)
+    aspect_ratio = img.height / img.width
+    new_height = int(aspect_ratio * new_width)
+    resampling_method = Image.Resampling.LANCZOS if img.mode in ["L", "RGB", "RGBA"] else Image.NEAREST
+    return img.resize((new_width, new_height), resampling_method)
 
-    # Open and append the rest of the images
-    for file_path in file_paths[1:]:
+
+def merge_tiffs(file_paths, output_path, widths, queue, compression_option):
+    initial_size = sum(os.path.getsize(file_path) for file_path in file_paths)
+    frames = []
+    for file_path in file_paths:
         with Image.open(file_path) as img:
-            frames.append(img.copy())
+            frame = img.copy()
+            if 'Compress Size' in compression_option:
+                frame = resize_image(frame, compression_option)
+            frames.append(frame)
+
+    # Extract metadata from the first frame
+    if hasattr(frames[0], "tag_v2"):
+        metadata = frames[0].tag_v2
+    else:
+        metadata = TiffImagePlugin.ImageFileDirectory_v2()
 
     # Save as a multi-frame TIFF
     frames[0].save(output_path, save_all=True, append_images=frames[1:], compression='tiff_lzw', tiffinfo=metadata)
+
+    final_size = os.path.getsize(output_path)
+    saved_size = initial_size - final_size
+    new_name = os.path.basename(output_path)
+    console_entry = format_table_row(
+        ['[+] [Merged]' + new_name, f"Original Size: {bytes_to_mb(initial_size):.2f}MB",
+         f"Final Size: {bytes_to_mb(final_size):.2f}MB",
+         f"Saved: {bytes_to_mb(saved_size):.2f}MB"], widths)
+    queue.put(console_entry)
+
+    return saved_size, initial_size, final_size, new_name
 
 
 def get_channel_range(files):

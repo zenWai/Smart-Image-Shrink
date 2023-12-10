@@ -8,7 +8,7 @@ import wx.lib.buttons as buttons
 from wx.lib.delayedresult import startWorker
 from compress_logic import run_compression
 from compress_logic import request_stop as logic_request_stop
-from helpers import count_files_in_source, count_files_in_destination, log_to_console
+from helpers import count_files_in_source, count_files_in_destination, log_to_console, collect_multi_frame_tiff_groups
 
 COMPRESSION_OPTIONS = [
     'Compress with Quality Retention',
@@ -32,6 +32,7 @@ class CompressorApp(wx.Frame):
         self.last_github_click_time = 0
         self.stop_requested = False
         self.instance_of_app = self
+        self.should_merge = False
 
         # Determine if we're running as a bundled executable
         base_path = os.path.dirname(os.path.abspath(__file__))
@@ -146,6 +147,12 @@ class CompressorApp(wx.Frame):
         button_sizer_start_stop.Add(self.stop_button, 0, wx.ALL, 10)
         main_sizer.Add(button_sizer_start_stop, 0, wx.CENTER)
 
+        # Create a checkbox for merging channels (initially hidden)
+        self.merge_checkbox = wx.CheckBox(self.panel, label="Detected channels: Group into multi-frame images?")
+        main_sizer.Add(self.merge_checkbox, 0, wx.ALL | wx.CENTER, 5)
+        self.merge_checkbox.Hide()
+        self.merge_checkbox.Bind(wx.EVT_CHECKBOX, self.on_merge_channels)
+
         # Load standard gif icon and loading animation gif
         self.github_icon_path = os.path.join(base_path, 'img', 'github_icon.gif')
         self.github_loading_path = os.path.join(base_path, 'img', 'busy_loading.gif')
@@ -166,6 +173,9 @@ class CompressorApp(wx.Frame):
         self.panel.SetSizer(main_sizer)
         self.Centre()
         self.Show(True)
+
+    def on_merge_channels(self, event):
+        self.should_merge = self.merge_checkbox.GetValue()
 
     def on_resize(self, event):
         """Reposition the GitHub GIF when the window size changes."""
@@ -247,6 +257,13 @@ class CompressorApp(wx.Frame):
              unsupported_files_count,
              unsupported_files
              ) = count_files_in_source(self.source_directory, self.console_output)
+            grouped_files = collect_multi_frame_tiff_groups(self.source_directory)
+            if grouped_files:
+                self.merge_checkbox.Show()
+                wx.CallAfter(self.panel.Layout)
+            else:
+                self.merge_checkbox.Hide()
+                wx.CallAfter(self.panel.Layout)
             MSG_SEPARATOR = "========================================\n"
             MSG_SRC_DIR = f"Source Directory: {self.source_directory}\n"
             MSG_TOTAL_FILES = f"Total Files in Source Directory: {total_files}"
@@ -342,6 +359,10 @@ class CompressorApp(wx.Frame):
         self.btn_start.Disable()
         self.compression_choice.Disable()
         self.stop_button.Enable()
+        if not self.merge_checkbox.IsShown():
+            self.should_merge = False
+        else:
+            self.merge_checkbox.Disable()
         self.stop_requested = False
         # Set the GIF to loading mode
         wx.CallAfter(self.set_gif_animation, 'loading')
@@ -349,7 +370,7 @@ class CompressorApp(wx.Frame):
         self.Refresh()
         startWorker(self.compression_done, run_compression,
                     wargs=(self.compression_choice, self.source_directory, self.destination_directory,
-                           self.console_output, self.is_stop_requested))
+                           self.console_output, self.is_stop_requested, self.should_merge))
 
     # User request Stop Button
     def is_stop_requested(self):
@@ -369,6 +390,7 @@ class CompressorApp(wx.Frame):
         self.compression_choice.Enable()
         self.stop_button.Disable()
         self.stop_requested = False
+        self.merge_checkbox.Enable()
         # Force UI update
         self.Refresh()
 
