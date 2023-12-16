@@ -21,7 +21,7 @@ COMPRESSION_OPTIONS = [
 
 class CompressorApp(wx.Frame):
     def __init__(self, parent, title):
-        super(CompressorApp, self).__init__(parent, title=title, size=(1300, 800))
+        super(CompressorApp, self).__init__(parent, title=title, size=(1600, 800))
         # Initialize the attributes
         self.last_frame_size = (0, 0)  # Initialize with a dummy value
         self.bmp = None
@@ -210,7 +210,7 @@ class CompressorApp(wx.Frame):
             "   - To Compress and Greatly Decrease the Image Size use ➡️ 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
             "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
         )
-        font = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_HEAVY)
         dc.SetFont(font)
         text_color = wx.Colour('white')
         shadow_color = wx.Colour('black')
