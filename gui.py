@@ -97,13 +97,10 @@ class CompressorApp(wx.Frame):
         # Create a BoxSizer for vertical layout
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-
-
         # Buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        top_margin = 360
-        button_sizer.Add(self.btn_source, 0, wx.TOP, top_margin)
-        button_sizer.Add(self.btn_dest, 0, wx.TOP, top_margin)
+        button_sizer.Add(self.btn_source, 0, wx.CENTER | wx.ALL, 10)
+        button_sizer.Add(self.btn_dest, 0, wx.CENTER | wx.ALL, 10)
         # Add a Choice widget for compression options
         self.compression_choice = wx.Choice(self.panel, choices=COMPRESSION_OPTIONS)
         self.compression_choice.SetBackgroundColour(wx.Colour('navy'))
@@ -123,8 +120,8 @@ class CompressorApp(wx.Frame):
 
         # Console output
         console_sizer = wx.BoxSizer(wx.VERTICAL)
-        console_sizer.Add(self.console_output, 1, wx.ALL | wx.EXPAND, 10)
-        main_sizer.Add(console_sizer, 0, wx.EXPAND, 10)
+        console_sizer.Add(self.console_output, 1, wx.ALL | wx.EXPAND | wx.LEFT | wx.RIGHT, 20)
+        main_sizer.Add(console_sizer, 1, flag=wx.ALL | wx.EXPAND, border=0)
 
         # Start button
         button_sizer_start_stop = wx.BoxSizer(wx.HORIZONTAL)
@@ -147,6 +144,9 @@ class CompressorApp(wx.Frame):
 
         self.gif_ctrl = wx.adv.AnimationCtrl(self.panel, -1, self.standard_animation)
         self.gif_ctrl.Play()
+        outer_sizer = wx.BoxSizer(wx.VERTICAL)
+        outer_sizer.AddStretchSpacer()
+        outer_sizer.Add(main_sizer, 1, wx.CENTER | wx.EXPAND | wx.BOTTOM, border=90)
 
         # Initially position the GIF control; will be updated in the on_resize method
         self.on_resize(None)  # Call once to set the initial position
@@ -155,7 +155,7 @@ class CompressorApp(wx.Frame):
         self.gif_ctrl.Bind(wx.EVT_LEFT_DOWN, self.on_github_icon_click)
 
         # Set the main sizer for the panel
-        self.panel.SetSizer(main_sizer)
+        self.panel.SetSizer(outer_sizer)
         self.Centre()
         self.Show(True)
 

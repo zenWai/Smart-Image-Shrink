@@ -14,12 +14,11 @@ num_tasks_completed = 0
 
 def run_compression(compression_choice, source_directory, destination_directory, console_output, is_stop_requested,
                     should_merge):
-    apply_results_merge = []
-    widths = [115, 20, 20, 20]  # Column widths
-    header = ["File Name", "Original Size (MB)", "New Size (MB)", "Saved Size (MB)"]
-    log_entries = [format_table_row(header, widths)]
-    log_entries.append('-' * sum(widths))  # Separator line
     compression_option = compression_choice.GetString(compression_choice.GetSelection())
+    apply_results_merge = []
+    # For logging
+    widths = [95, 20, 20, 20]  # Column widths
+    header = ["File Name", "Original Size (MB)", "New Size (MB)", "Saved Size (MB)"]
 
     MSG_START_COMPRESSION = f"[▶] Compression with: {compression_option}!\n"
     log_to_console(console_output, MSG_START_COMPRESSION, None, True)
@@ -48,7 +47,7 @@ def run_compression(compression_choice, source_directory, destination_directory,
     MSG_COMPRESSION_ENDED = f'Compression ended\n✅Successfully compressed {num_files_processed} images.\n '
     log_to_console(console_output, MSG_COMPRESSION_ENDED, wx.GREEN, True)
     log_to_console(console_output, "========================================\n", None, False)
-    log_file_path = create_log_file(destination_directory, num_files_processed, log_entries, total_saved_size)
+    log_file_path = create_log_file(destination_directory, num_files_processed, log_entries, total_saved_size, header, widths)
     return log_file_path if log_file_path else "STOPPED"
 
 

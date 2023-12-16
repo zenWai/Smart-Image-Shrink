@@ -179,12 +179,14 @@ def log_to_console(console_output, text, color=None, include_timestamp=True):
     wx.CallAfter(update_console)
 
 
-def create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size):
+def create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size, header, widths):
     # Create log file
     log_file_path = os.path.join(dest_dir, "log.txt")
     with open(log_file_path, "w", encoding='utf-8') as log_file:  # Specify UTF-8 encoding for Windows
         log_file.write(f"[*] Processed {num_files_processed} files:\n")
         log_file.write('========================================\n')
+        header2 = format_table_row(header, widths)
+        log_file.write(f'\n{header2}\n')
         log_file.write('\n'.join(log_entries))
         log_file.write('\n========================================')
         log_file.write(f"\n[*] Successfully compressed {num_files_processed} images.")
