@@ -28,9 +28,13 @@ def extract_frames_with_metadata(img):
 
 def is_multi_frame(img):
     try:
-        return img.n_frames > 1
+        # Check if the image format supports multiple frames
+        if getattr(img, "is_animated", False):
+            return img.n_frames > 1
+        else:
+            return False
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error checking if multi-frame - skipped with a return false: {e}")
         return False
 
 
@@ -178,7 +182,7 @@ def log_to_console(console_output, text, color=None, include_timestamp=True):
 def create_log_file(dest_dir, num_files_processed, log_entries, total_saved_size):
     # Create log file
     log_file_path = os.path.join(dest_dir, "log.txt")
-    with open(log_file_path, "w") as log_file:
+    with open(log_file_path, "w", encoding='utf-8') as log_file:  # Specify UTF-8 encoding for Windows
         log_file.write(f"[*] Processed {num_files_processed} files:\n")
         log_file.write('========================================\n')
         log_file.write('\n'.join(log_entries))

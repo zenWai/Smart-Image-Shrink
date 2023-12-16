@@ -50,23 +50,6 @@ class CompressorApp(wx.Frame):
 
         # Bind the EVT_PAINT event of the panel to the on_paint method
         self.panel.Bind(wx.EVT_PAINT, self.on_paint)
-
-        # Add an explanation label at the top
-        explanation = (
-            "This Software Compress images from a chosen Source Directory and saves them "
-            "in a Destination Directory.\n\n"
-            "✳️ Select the Source Directory.\n"
-            "✳️ Select the Destination Directory.\n"
-            "✳️ Pick a Compression Option. (Default: 'Compress with Quality Retention').\n"
-            "✳️ Click 'Start Compression'.\n\n"
-            "⭐Compression Options:\n"
-            "   - To Compress with Top-Tier Quality retention use ➡️'Compress with Quality Retention'\n"
-            "   - To Compress and Greatly Decrease the Image Size use ➡️ 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
-            "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
-        )
-        self.explanation_label = wx.StaticText(self.panel, label=explanation)
-        font_explanation_label = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.explanation_label.SetFont(font_explanation_label)
         # Add buttons to the panel
         # Select Source Directory button
         self.btn_source = buttons.GenButton(self.panel, label='📁 Source Directory   ', pos=(50, 150))
@@ -92,8 +75,10 @@ class CompressorApp(wx.Frame):
 
         # Add a TextCtrl for console output
         self.console_output = wx.TextCtrl(self.panel, size=(0, 150),
-                                          style=wx.TE_MULTILINE | wx.TE_READONLY)
+                                          style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH)
         monospaced_font = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.console_output.SetBackgroundColour(wx.BLACK)
+        self.console_output.SetForegroundColour(wx.WHITE)
         self.console_output.SetFont(monospaced_font)
 
         # Redirect stdout and stderr to the TextCtrl widget
@@ -112,13 +97,13 @@ class CompressorApp(wx.Frame):
         # Create a BoxSizer for vertical layout
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # Explanation label
-        main_sizer.Add(self.explanation_label, 0, wx.ALL, 10)
+
 
         # Buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(self.btn_source, 0, wx.ALL, 10)
-        button_sizer.Add(self.btn_dest, 0, wx.ALL, 10)
+        top_margin = 360
+        button_sizer.Add(self.btn_source, 0, wx.TOP, top_margin)
+        button_sizer.Add(self.btn_dest, 0, wx.TOP, top_margin)
         # Add a Choice widget for compression options
         self.compression_choice = wx.Choice(self.panel, choices=COMPRESSION_OPTIONS)
         self.compression_choice.SetBackgroundColour(wx.Colour('navy'))
@@ -211,6 +196,33 @@ class CompressorApp(wx.Frame):
 
         # Draw the bitmap onto the panel
         dc.DrawBitmap(bmp, 0, 0, True)
+        # Now draw the custom text
+        # Add an explanation label at the top
+        explanation_text = (
+            "This Software Compress images from a chosen Source Directory and saves them "
+            "in a Destination Directory.\n\n"
+            "✳️ Select the Source Directory.\n"
+            "✳️ Select the Destination Directory.\n"
+            "✳️ Pick a Compression Option. (Default: 'Compress with Quality Retention').\n"
+            "✳️ Click 'Start Compression'.\n\n"
+            "⭐Compression Options:\n"
+            "   - To Compress with Top-Tier Quality retention use ➡️'Compress with Quality Retention'\n"
+            "   - To Compress and Greatly Decrease the Image Size use ➡️ 'Compress Size x2'\nHalves the image dimensions, maintaining aspect ratio.\nThe reduction in file size is notable, and the quality remains largely intact.\n\n"
+            "   - As you increase the compression size (x4, x8, x16), the image size decreases proportionally.\n\nQuality loss becomes more noticeable, especially with 'Compress Size x16'."
+        )
+        font = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        dc.SetFont(font)
+        text_color = wx.Colour('white')
+        shadow_color = wx.Colour('black')
+        shadow_offset = (-1, 1)
+
+        # Draw shadow
+        dc.SetTextForeground(shadow_color)
+        dc.DrawText(explanation_text, 20 + shadow_offset[0], 20 + shadow_offset[1])
+
+        # Draw text
+        dc.SetTextForeground(text_color)
+        dc.DrawText(explanation_text, 20, 20)
 
     def on_github_icon_click(self, event):
         # Disable the GitHub icon temporarily

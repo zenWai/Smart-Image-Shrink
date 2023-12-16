@@ -249,6 +249,9 @@ def save_image_and_compress(img, img_path):
         if img_path.lower().endswith('.png'):
             img.save(img_path, optimize=True, compress_level=9)
         elif img_path.lower().endswith(('.jpg', '.jpeg')):
+            # If for some reason jpg got Alpha Channel
+            if img.mode == 'RGBA':
+                img = img.convert('RGB')
             img.save(img_path, optimize=True, quality=95, progressive=True)
         elif img_path.lower().endswith('.webp'):
             img.save(img_path, quality=95, lossless=True, method=6)
