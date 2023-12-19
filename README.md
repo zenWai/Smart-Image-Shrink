@@ -1,10 +1,11 @@
 # SmartImageShrink
-SmartImageShrink Application offers an efficient solution for compressing images while meticulously preserving their quality, metadata and data integrity.
 
-It's designed to be both user-friendly and powerful, employing state-of-the-art technologies to ensure optimal results of compression the user have options that range from quality retention to agressive reducing size.
+Designed to be both user-friendly and powerful, employing state-of-the-art technologies to ensure optimal results of compression the user have options that range from quality retention to agressive reducing size.
 
-Supports .tif .tiff .jpg .jpeg .png and high quality bit-depth 32-16.
-Converts images to multi-frame images from the names '*_chXX.tif' where XX is a number
+* Compress images while preserving their quality, metadata and data integrity.
+
+* Supports .tif .tiff .jpg .jpeg .png and high quality bit-depth 32-16.
+* Converts images to multi-frame images from the names '*_chXX.tif'
 
 # 
 
