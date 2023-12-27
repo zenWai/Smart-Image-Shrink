@@ -1,6 +1,6 @@
 # SmartImageShrink
 
-Designed to be both user-friendly and powerful, employing state-of-the-art technologies to ensure optimal results of compression the user have options that range from quality retention to agressive reducing size.
+Designed to be both user-friendly and powerful, employing state-of-the-art technologies to ensure optimal results of compression, you have options that range from quality retention to agressive reducing size.
 
 * Compress images while preserving their quality, metadata and data integrity.
 
