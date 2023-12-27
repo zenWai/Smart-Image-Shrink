@@ -2,8 +2,9 @@
 
 Designed to be both user-friendly and powerful, employing state-of-the-art technologies to ensure optimal results of compression, you have options that range from quality retention to agressive reducing size.
 
+* Reduce the size of all your images in one go and no quality loss.
+* Multi-Frame(s) to images and images to multi-frame(s).
 * Compress images while preserving their quality, metadata and data integrity.
-
 * Supports .tif .tiff .jpg .jpeg .png and high quality bit-depth 32-16.
 * Converts images to multi-frame images from the names '*_chXX.tif'
 
