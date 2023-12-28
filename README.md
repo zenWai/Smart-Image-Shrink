@@ -29,11 +29,11 @@ Designed to be both user-friendly and powerful, employing state-of-the-art techn
 
 # Test Case Original vs Compressed
 
-#### Size of 1,56 GB vs 899MB
+## Size of 1,56 GB vs 899MB
 ![SmartImageProcessor Test Case of Sagittal cut and image with Size 1,56 GB vs 899MB](https://github.com/zenWai/CompressImages-python/assets/124523559/0e720eb4-6dd1-41b4-aaac-3d40227d4ff6)
 ![SmartImageProcessor Test Case of Sagittal cut zoomed in and image with Size 1,56 GB vs 899MB](https://github.com/zenWai/CompressImages-python/assets/124523559/59560038-5217-46c4-984e-982a441ee47d)
 
-#### Size of 1,56GB vs 3,6MB - a 99.77% decrease :mouse:
+## Size of 1,56GB vs 3,6MB - a 99.77% decrease :mouse:
 ![SmartImageProcessor Test Case of Sagittal cut and image with Size 1,56 GB vs 3,6MB](https://github.com/zenWai/CompressImages-python/assets/124523559/9ac4af1e-f8ec-4b79-b171-dfa1a9df7854)
 
 
