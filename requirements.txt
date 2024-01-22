@@ -8,7 +8,7 @@ idna==3.6
 macholib==1.16.2
 numpy==1.26.2
 packaging==23.2
-Pillow==10.0.1
+Pillow==10.2.0
 pip-upgrader==1.4.15
 pipreqs==0.4.13
 pyinstaller==6.2.0
