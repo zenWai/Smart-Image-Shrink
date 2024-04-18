@@ -1,0 +1,25 @@
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-latest', 'ubuntu-latest', 'macos-latest']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+      - run: pyinstaller --noconsole --name="SmartImageShrink_v0.6" --icon="img/icon.png" --add-data="img:img" main.py
+      - run: ./dist/your-code/your-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SmartImageShrink_v0.6
+          path: dist/*
+          compression-level: 9
