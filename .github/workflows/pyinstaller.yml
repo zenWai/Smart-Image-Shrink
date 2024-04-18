@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'ubuntu-latest', 'macos-latest']
+        os: ['macos-14-arm64']
 
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +16,9 @@ jobs:
           python-version: '3.11'
 
       - run: pip install -r requirements.txt
-      - run: pyinstaller --noconsole --name="SmartImageShrink_v0.6" --icon="img/icon.png" --add-data="img:img" main.py
+      - run: pyinstaller --noconsole --name="SmartImageShrink_v0.7" --icon="img/icon.png" --add-data="img:img" main.py
       - uses: actions/upload-artifact@v4
         with:
-          name: SmartImageShrink_v0.6
+          name: SmartImageShrink_v0.7
           path: dist/*
           compression-level: 9
