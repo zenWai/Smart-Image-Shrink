@@ -31,7 +31,7 @@ jobs:
       - name: Bundle APP
         run: pyinstaller SmartImageShrink_v0.6.spec
       - name: Set Executable Permissions
-        run: chmod +x SmartImageShrink_v0.6.app/Contents/MacOS/SmartImageShrink_v0.6
+        run: chmod +x dist/SmartImageShrink_v0.6.app/Contents/MacOS/SmartImageShrink_v0.6
       - name: Zip the App for Notarization
         run: |
           zip -r -y -p SmartImageShrink_v0.6.app.zip dist/SmartImageShrink_v0.6.app
