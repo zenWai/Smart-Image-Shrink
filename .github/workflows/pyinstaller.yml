@@ -19,12 +19,11 @@ jobs:
           security unlock-keychain -p "temp_password" build.keychain
           security import certificate.p12 -k build.keychain -P ${{ secrets.CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "temp_password" build.keychain
-      - run: pyinstaller SmartImageShrink_v0.6.spec
-      - name: Sign Application
+      - name: Prepare .spec File
         run: |
-          codesign --sign "${{ secrets.DEVELOPER_ID }}" --deep --options runtime --force --verbose dist/SmartImageShrink_v0.6.app
-          codesign --verify --deep --strict --verbose=2 dist/SmartImageShrink_v0.6.app
+          sed -i '' "s/SECRET_DEVELOPER_ID/${{ secrets.DEVELOPER_ID }}/" SmartImageShrink_v0.6.spec
+      - run: pyinstaller SmartImageShrink_v0.6.spec
       - uses: actions/upload-artifact@v4
         with:
           path: dist/*
-          compression-level: 9
+          compression-level: 0
