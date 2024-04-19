@@ -65,8 +65,14 @@ jobs:
     steps:
       - name: Extract version tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: List artifacts
+        run: |
+          curl \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/zenWai/Smart-Image-Shrink/actions/runs/8752152291/artifacts
       - name: Download Artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: SmartImageShrink_${{ env.VERSION }}
       - name: Create and Upload Release
