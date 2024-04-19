@@ -51,7 +51,7 @@ jobs:
           mkdir -p SmartImageShrink
           cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
       - name: Check permissions
-        run: ls -l SmartImageShrink/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
+        run: ls -l SmartImageShrink_${{ env.VERSION }}/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
       - name: Tar the application to preserve permissions
         run: tar -cvf SmartImageShrink_${{ env.VERSION }}.app.tar SmartImageShrink_${{ env.VERSION }}
       - name: Upload Tarred App as Artifact
