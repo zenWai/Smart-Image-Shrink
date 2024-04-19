@@ -3,7 +3,7 @@ on:
     tags:
       - 'v*'
 jobs:
-  build:
+  build_macos_arm64:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +32,7 @@ jobs:
         run: |
           sed -i '' "s/SECRET_DEVELOPER_ID/${{ secrets.DEVELOPER_ID }}/" SmartImageShrink.spec
           sed -i '' "s/SmartImageShrink_TAGVERSION/SmartImageShrink_${{ env.VERSION }}/" SmartImageShrink.spec
+          sed -i '' "s/OS_ARCHITECTURE/arm64/" SmartImageShrink.spec
       - name: Bundle APP
         run: pyinstaller SmartImageShrink.spec
       - name: Set Executable Permissions
@@ -59,38 +60,81 @@ jobs:
         with:
           name: SmartImageShrink_${{ env.VERSION }}
           path: SmartImageShrink_${{ env.VERSION }}.app.tar
+
+  build_macos_x86_64x:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+      - name: Install Certificate
+        run: |
+          echo "${{ secrets.CERTIFICATE_BASE64 }}" | base64 --decode -o certificate.p12
+          security create-keychain -p "temp_password" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "temp_password" build.keychain
+          security import certificate.p12 -k build.keychain -P ${{ secrets.CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "temp_password" build.keychain
+      - name: Decode API Key
+        run: |
+          echo "${{ secrets.API_KEY }}" | base64 --decode -o ./AuthKey.p8
+      - name: Prepare Notary
+        run: |
+          xcrun notarytool store-credentials "GitHubActions" --key ./AuthKey.p8 --key-id ${{ secrets.API_KEY_ID }} --issuer ${{ secrets.ISSUER_ID }}
+      - name: Prepare .spec File
+        run: |
+          sed -i '' "s/SECRET_DEVELOPER_ID/${{ secrets.DEVELOPER_ID }}/" SmartImageShrink.spec
+          sed -i '' "s/SmartImageShrink_TAGVERSION/SmartImageShrink_${{ env.VERSION }}/" SmartImageShrink.spec
+          sed -i '' "s/OS_ARCHITECTURE/x86_64/" SmartImageShrink.spec
+      - name: Bundle APP
+        run: pyinstaller SmartImageShrink.spec
+      - name: Set Executable Permissions
+        run: chmod +x dist/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/SmartImageShrink_${{ env.VERSION }}
+      - name: Zip the App for Notarization
+        run: |
+          zip -r -y -p SmartImageShrink_${{ env.VERSION }}.app.zip dist/SmartImageShrink_${{ env.VERSION }}.app
+      - name: Notarize
+        run: |
+          xcrun notarytool submit SmartImageShrink_${{ env.VERSION }}.app.zip --keychain-profile "GitHubActions" --wait
+      - name: Staple the App
+        run: xcrun stapler staple dist/SmartImageShrink_${{ env.VERSION }}.app
+      - name: check
+        run: spctl -a -t exec -vv dist/SmartImageShrink_${{ env.VERSION }}.app
+      - name: Prepare Tar Directory with name of the app
+        run: |
+          mkdir -p SmartImageShrink_${{ env.VERSION }}
+          cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
+      - name: Check permissions
+        run: ls -l SmartImageShrink_${{ env.VERSION }}/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
+      - name: Tar the application to preserve permissions
+        run: tar -cvf SmartImageShrink_${{ env.VERSION }}_x86_64.app.tar SmartImageShrink_${{ env.VERSION }}
+      - name: Upload Tarred App as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartImageShrink_${{ env.VERSION }}_x86_64
+          path: SmartImageShrink_${{ env.VERSION }}_x86_64.app.tar
+
   release:
-    needs: build
+    needs: [build_macos_arm64, build_macos_x86_64x]
     runs-on: ubuntu-latest
     steps:
       - name: Extract version tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-      - name: List artifacts
+      - name: Download and Release All Artifacts
         run: |
-          curl \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/zenWai/Smart-Image-Shrink/actions/runs/8752152291/artifacts
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: SmartImageShrink_${{ env.VERSION }}
+          mkdir artifacts
+          for artifact in $(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/zenWai/Smart-Image-Shrink/actions/runs/${{ github.run_id }}/artifacts" | jq -r '.artifacts[] | .archive_download_url'); do
+            curl -L -o "artifacts/${artifact##*/}" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifact"
+          done
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
           name: Release ${{ env.VERSION }}
-          files: SmartImageShrink_${{ env.VERSION }}.app.zip
+          files: artifacts/*
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      #- name: Create and Upload Release
-      #  uses: softprops/action-gh-release@v2
-      #  with:
-      #    tag_name: ${{ env.VERSION }}
-      #    name: Release ${{ env.VERSION }}
-      #    draft: true
-      #    prerelease: false
-      #    files: SmartImageShrink_${{ env.VERSION }}.zip
-      #    token: ${{ secrets.GITHUB_TOKEN }}
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
