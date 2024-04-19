@@ -2,7 +2,6 @@ on:
   push:
     tags:
       - 'v*'
-
 jobs:
   build:
     runs-on: macos-14
