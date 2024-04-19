@@ -49,17 +49,17 @@ jobs:
         run: spctl -a -t exec -vv dist/SmartImageShrink_${{ env.VERSION }}.app
       - name: Prepare Tar Directory with name of the app
         run: |
-          mkdir -p SmartImageShrink_${{ env.VERSION }}
-          cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
+          mkdir -p SmartImageShrink_${{ env.VERSION }}_macOS_arm64
+          cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}_macOS_arm64/
       - name: Check permissions
-        run: ls -l SmartImageShrink_${{ env.VERSION }}/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
+        run: ls -l SmartImageShrink_${{ env.VERSION }}_macOS_arm64/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
       - name: Tar the application to preserve permissions
-        run: tar -cvf SmartImageShrink_${{ env.VERSION }}.app.tar SmartImageShrink_${{ env.VERSION }}
+        run: tar -cvf SmartImageShrink_${{ env.VERSION }}_macOS_arm64.app.tar SmartImageShrink_${{ env.VERSION }}_macOS_arm64
       - name: Upload Tarred App as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartImageShrink_${{ env.VERSION }}
-          path: SmartImageShrink_${{ env.VERSION }}.app.tar
+          name: SmartImageShrink_${{ env.VERSION }}_macOS_arm64
+          path: SmartImageShrink_${{ env.VERSION }}_macOS_arm64.app.tar
 
   build_macos_x86_64x:
     runs-on: macos-13
@@ -107,17 +107,17 @@ jobs:
         run: spctl -a -t exec -vv dist/SmartImageShrink_${{ env.VERSION }}.app
       - name: Prepare Tar Directory with name of the app
         run: |
-          mkdir -p SmartImageShrink_${{ env.VERSION }}
-          cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
+          mkdir -p SmartImageShrink_${{ env.VERSION }}_macOS_x86_64
+          cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}_macOS_x86_64/
       - name: Check permissions
-        run: ls -l SmartImageShrink_${{ env.VERSION }}/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
+        run: ls -l SmartImageShrink_${{ env.VERSION }}_macOS_x86_64/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
       - name: Tar the application to preserve permissions
-        run: tar -cvf SmartImageShrink_${{ env.VERSION }}_x86_64.app.tar SmartImageShrink_${{ env.VERSION }}
+        run: tar -cvf SmartImageShrink_${{ env.VERSION }}_macOS_intel_x86_64.app.tar SmartImageShrink_${{ env.VERSION }}_macOS_x86_64
       - name: Upload Tarred App as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartImageShrink_${{ env.VERSION }}_x86_64
-          path: SmartImageShrink_${{ env.VERSION }}_x86_64.app.tar
+          name: SmartImageShrink_${{ env.VERSION }}_macOS_intel_x86_64
+          path: SmartImageShrink_${{ env.VERSION }}_macOS_intel_x86_64.app.tar
 
   release:
     needs: [build_macos_arm64, build_macos_x86_64x]
