@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='SmartImageShrink_v0.6',
+    name='SmartImageShrink_TAGVERSION',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -39,7 +39,7 @@ exe = EXE(
 )
 app = BUNDLE(
     exe,
-    name='SmartImageShrink_v0.6.app',
+    name='SmartImageShrink_TAGVERSION.app',
     icon='img/icon.png',
     bundle_identifier='com.presa.SmartImageShrink',
 )

@@ -31,30 +31,31 @@ jobs:
       - name: Prepare .spec File
         run: |
           sed -i '' "s/SECRET_DEVELOPER_ID/${{ secrets.DEVELOPER_ID }}/" SmartImageShrink_v0.6.spec
+          sed -i '' "s/SmartImageShrink_TAGVERSION/SmartImageShrink_${{ env.VERSION }}/" SmartImageShrink_v0.6.spec
       - name: Bundle APP
         run: pyinstaller SmartImageShrink_v0.6.spec
       - name: Set Executable Permissions
-        run: chmod +x dist/SmartImageShrink_v0.6.app/Contents/MacOS/SmartImageShrink_v0.6
+        run: chmod +x dist/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/SmartImageShrink_${{ env.VERSION }}
       - name: Zip the App for Notarization
         run: |
-          zip -r -y -p SmartImageShrink_v0.6.app.zip dist/SmartImageShrink_v0.6.app
+          zip -r -y -p SmartImageShrink_${{ env.VERSION }}.app.zip dist/SmartImageShrink_${{ env.VERSION }}.app
       - name: Notarize
         run: |
-          xcrun notarytool submit SmartImageShrink_v0.6.app.zip --keychain-profile "GitHubActions" --wait
+          xcrun notarytool submit SmartImageShrink_${{ env.VERSION }}.app.zip --keychain-profile "GitHubActions" --wait
       - name: Staple the App
-        run: xcrun stapler staple dist/SmartImageShrink_v0.6.app
+        run: xcrun stapler staple dist/SmartImageShrink_${{ env.VERSION }}.app
       - name: check
-        run: spctl -a -t exec -vv dist/SmartImageShrink_v0.6.app
+        run: spctl -a -t exec -vv dist/SmartImageShrink_${{ env.VERSION }}.app
       - name: Prepare Tar Directory with name of the app
         run: |
           mkdir -p SmartImageShrink
-          cp -R dist/SmartImageShrink_v0.6.app SmartImageShrink/
+          cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
       - name: Check permissions
-        run: ls -l SmartImageShrink/SmartImageShrink_v0.6.app/Contents/MacOS/*
+        run: ls -l SmartImageShrink/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
       - name: Tar the application to preserve permissions
-        run: tar -cvf SmartImageShrink_v0.6.app.tar SmartImageShrink
+        run: tar -cvf SmartImageShrink_${{ env.VERSION }}.app.tar SmartImageShrink_${{ env.VERSION }}
       - name: Upload Tarred App as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SmartImageShrink_${{ env.VERSION }}
-          path: SmartImageShrink_v0.6.app.tar
+          path: SmartImageShrink_${{ env.VERSION }}.app.tar
