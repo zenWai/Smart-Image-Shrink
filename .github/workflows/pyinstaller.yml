@@ -66,13 +66,13 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v2
         with:
-          name: SmartImageShrink_${{ needs.build.outputs.VERSION }}
+          name: SmartImageShrink_${{ env.VERSION }}
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build.outputs.VERSION }}
-          name: Release ${{ needs.build.outputs.VERSION }}
-          files: SmartImageShrink_${{ needs.build.outputs.VERSION }}.app.tar
+          tag_name: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
+          files: SmartImageShrink_${{ env.VERSION }}.app.tar
           token: ${{ secrets.GITHUB_TOKEN }}
 
       #- name: Create and Upload Release
