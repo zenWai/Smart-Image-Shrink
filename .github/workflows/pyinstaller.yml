@@ -80,7 +80,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           name: Release ${{ env.VERSION }}
-          files: SmartImageShrink_${{ env.VERSION }}.app.tar
+          files: SmartImageShrink_${{ env.VERSION }}.app.zip
           token: ${{ secrets.GITHUB_TOKEN }}
 
       #- name: Create and Upload Release
