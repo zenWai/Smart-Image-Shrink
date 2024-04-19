@@ -11,7 +11,7 @@ packaging==23.2
 Pillow==10.0.1
 pip-upgrader==1.4.15
 pipreqs==0.4.13
-pyinstaller==6.2.0
+pyinstaller==6.6.0
 pyinstaller-hooks-contrib==2023.10
 requests==2.31.0
 six==1.16.0
