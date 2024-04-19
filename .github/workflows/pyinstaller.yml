@@ -42,8 +42,12 @@ jobs:
         run: xcrun stapler staple dist/SmartImageShrink_v0.6.app
       - name: check
         run: spctl -a -t exec -vv dist/SmartImageShrink_v0.6.app
+      - name: Prepare Tar Directory with name of the app
+        run: |
+          mkdir -p SmartImageShrink
+          cp -R dist/SmartImageShrink_v0.6.app SmartImageShrink/
       - name: Tar the application to preserve permissions
-        run: tar -cvpf SmartImageShrink_v0.6.app.tar dist/SmartImageShrink_v0.6.app
+        run: tar -cvpf SmartImageShrink_v0.6.app.tar -C SmartImageShrink .
       - name: Upload Tarred App as Artifact
         uses: actions/upload-artifact@v4
         with:
