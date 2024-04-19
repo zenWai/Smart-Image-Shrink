@@ -133,7 +133,7 @@ jobs:
       - name: Prepare .spec File
         shell: pwsh
         run: |
-          (Get-Content SmartImageShrink.spec) -replace 'SECRET_DEVELOPER_ID', '' -replace 'SmartImageShrink_TAGVERSION', 'SmartImageShrink_${{ env.VERSION }}' -replace 'OS_ARCHITECTURE', 'x86_64' -replace ['img/icon.png'], 'img\\icon.ico' | Set-Content SmartImageShrink.spec
+          (Get-Content SmartImageShrink.spec) -replace 'SECRET_DEVELOPER_ID', '' -replace 'SmartImageShrink_TAGVERSION', 'SmartImageShrink_${{ env.VERSION }}' -replace 'OS_ARCHITECTURE', 'x86_64' -replace 'img/icon.png', 'img\\icon.ico' | Set-Content SmartImageShrink.spec
       - name: Bundle APP
         run: pyinstaller SmartImageShrink.spec
       - name: Prepare Directory with name of the app
