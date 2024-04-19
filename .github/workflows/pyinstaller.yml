@@ -52,24 +52,37 @@ jobs:
           cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
       - name: Check permissions
         run: ls -l SmartImageShrink_${{ env.VERSION }}/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
-      #- name: Tar the application to preserve permissions
-      #  run: tar -cvf SmartImageShrink_${{ env.VERSION }}.app.tar SmartImageShrink_${{ env.VERSION }}
-      #- name: Upload Tarred App as Artifact
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: SmartImageShrink_${{ env.VERSION }}
-      #    path: SmartImageShrink_${{ env.VERSION }}.app.tar
-      - name: Zip the App
-        run: |
-          zip -r -y -p SmartImageShrink_${{ env.VERSION }}.zip SmartImageShrink_${{ env.VERSION }}
+      - name: Tar the application to preserve permissions
+        run: tar -cvf SmartImageShrink_${{ env.VERSION }}.app.tar SmartImageShrink_${{ env.VERSION }}
+      - name: Upload Tarred App as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartImageShrink_${{ env.VERSION }}
+          path: SmartImageShrink_${{ env.VERSION }}.app.tar
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: SmartImageShrink_${{ needs.build.outputs.VERSION }}
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.VERSION }}
-          name: Release ${{ env.VERSION }}
-          draft: true
-          prerelease: false
-          files: SmartImageShrink_${{ env.VERSION }}.zip
+          tag_name: ${{ needs.build.outputs.VERSION }}
+          name: Release ${{ needs.build.outputs.VERSION }}
+          files: SmartImageShrink_${{ needs.build.outputs.VERSION }}.app.tar
           token: ${{ secrets.GITHUB_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      #- name: Create and Upload Release
+      #  uses: softprops/action-gh-release@v2
+      #  with:
+      #    tag_name: ${{ env.VERSION }}
+      #    name: Release ${{ env.VERSION }}
+      #    draft: true
+      #    prerelease: false
+      #    files: SmartImageShrink_${{ env.VERSION }}.zip
+      #    token: ${{ secrets.GITHUB_TOKEN }}
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
