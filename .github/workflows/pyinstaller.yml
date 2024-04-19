@@ -125,15 +125,13 @@ jobs:
     steps:
       - name: Extract version tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-      - name: Download and Release All Artifacts
-        run: |
-          mkdir artifacts
-          for artifact in $(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/zenWai/Smart-Image-Shrink/actions/runs/${{ github.run_id }}/artifacts" | jq -r '.artifacts[] | .archive_download_url'); do
-            artifact_name=$(basename $(echo $artifact | sed 's/\?.*//'))  # Strip query params from URL
-            curl -L -o "artifacts/$artifact_name" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifact"
-          done
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
       - name: List downloaded artifacts
-        run: ls -alh artifacts/
+        run: ls -R artifacts/
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
         with:
