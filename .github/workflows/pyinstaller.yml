@@ -30,9 +30,11 @@ jobs:
           sed -i '' "s/SECRET_DEVELOPER_ID/${{ secrets.DEVELOPER_ID }}/" SmartImageShrink_v0.6.spec
       - name: Bundle APP
         run: pyinstaller SmartImageShrink_v0.6.spec
+      - name: Set Executable Permissions
+        run: chmod +x SmartImageShrink_v0.6.app/Contents/MacOS/SmartImageShrink_v0.6
       - name: Zip the App for Notarization
         run: |
-          zip -r SmartImageShrink_v0.6.app.zip dist/SmartImageShrink_v0.6.app
+          zip -r -y -p SmartImageShrink_v0.6.app.zip dist/SmartImageShrink_v0.6.app
       - name: Notarize
         run: |
           xcrun notarytool submit SmartImageShrink_v0.6.app.zip --keychain-profile "GitHubActions" --wait
