@@ -20,6 +20,10 @@ jobs:
           security import certificate.p12 -k build.keychain -P ${{ secrets.CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "temp_password" build.keychain
       - run: pyinstaller SmartImageShrink_v0.6.spec
+      - name: Sign Application
+        run: |
+          codesign --sign "${{ secrets.DEVELOPER_ID }}" --deep --options runtime --force --verbose dist/SmartImageShrink_v0.6.app
+          codesign --verify --deep --strict --verbose=2 dist/SmartImageShrink_v0.6.app
       - uses: actions/upload-artifact@v4
         with:
           path: dist/*
