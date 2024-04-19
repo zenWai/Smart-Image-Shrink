@@ -40,5 +40,5 @@ jobs:
         run: xcrun stapler staple dist/SmartImageShrink_v0.6.app
       - uses: actions/upload-artifact@v4
         with:
-          path: dist/SmartImageShrink_v0.6.app
+          path: dist/*
           compression-level: 0
