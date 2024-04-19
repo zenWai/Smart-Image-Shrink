@@ -11,6 +11,14 @@ jobs:
           python-version: '3.11'
 
       - run: pip install -r requirements.txt
+      - name: Install Certificate
+        run: |
+          echo "${{ secrets.CERTIFICATE_BASE64 }}" | base64 --decode -o certificate.p12
+          security create-keychain -p "temp_password" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "temp_password" build.keychain
+          security import certificate.p12 -k build.keychain -P ${{ secrets.CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "temp_password" build.keychain
       - run: pyinstaller SmartImageShrink_v0.6.spec
       - uses: actions/upload-artifact@v4
         with:
