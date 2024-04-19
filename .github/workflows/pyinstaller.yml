@@ -1,5 +1,7 @@
 on:
   push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -45,11 +47,11 @@ jobs:
       - name: Prepare Tar Directory with name of the app
         run: |
           mkdir -p SmartImageShrink
-          cp -R dist/SmartImageShrink_v0.6.app SmartImageShrink/
+          cp -R dist/SmartImageShrink_v0.6.app SmartImageShrink_${{ github.ref }}/
       - name: Check permissions
-        run: ls -l SmartImageShrink/SmartImageShrink_v0.6.app/Contents/MacOS/*
+        run: ls -l SmartImageShrink_${{ github.ref }}/SmartImageShrink_v0.6.app/Contents/MacOS/*
       - name: Tar the application to preserve permissions
-        run: tar -cvf SmartImageShrink_v0.6.app.tar SmartImageShrink
+        run: tar -cvf SmartImageShrink_v0.6.app.tar SmartImageShrink_${{ github.ref }}
       - name: Upload Tarred App as Artifact
         uses: actions/upload-artifact@v4
         with:
