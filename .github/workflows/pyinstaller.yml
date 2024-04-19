@@ -48,7 +48,7 @@ jobs:
         run: spctl -a -t exec -vv dist/SmartImageShrink_${{ env.VERSION }}.app
       - name: Prepare Tar Directory with name of the app
         run: |
-          mkdir -p SmartImageShrink
+          mkdir -p SmartImageShrink_${{ env.VERSION }}
           cp -R dist/SmartImageShrink_${{ env.VERSION }}.app SmartImageShrink_${{ env.VERSION }}/
       - name: Check permissions
         run: ls -l SmartImageShrink_${{ env.VERSION }}/SmartImageShrink_${{ env.VERSION }}.app/Contents/MacOS/*
