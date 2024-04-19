@@ -3,12 +3,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ['macos-13-xlarge', 'macos-13', 'macos-14-xlarge']
-
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -16,7 +11,7 @@ jobs:
           python-version: '3.11'
 
       - run: pip install -r requirements.txt
-      - run: pyinstaller --noconsole --name="SmartImageShrink_v0.7" --icon="img/icon.png" --add-data="img:img" main.py
+      - run: pyinstaller --noconsole --name="SmartImageShrink_v0.8" --icon="img/icon.png" --add-data="img:img" main.py
       - uses: actions/upload-artifact@v4
         with:
           path: dist/*
