@@ -3,28 +3,6 @@ on:
     tags:
       - 'v*'
 jobs:
-  createrelease:
-    name: Create Release
-    runs-on: [ ubuntu-latest ]
-    steps:
-      - name: Extract version tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.VERSION }}
-          release_name: Release ${{ env.VERSION }}
-          draft: true
-          prerelease: false
-      - name: Output Release URL File
-        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
-      - name: Save Release URL File for publish
-        uses: actions/upload-artifact@v1
-        with:
-          name: release_url
-          path: release_url.txt
-
   build:
     runs-on: macos-14
     steps:
@@ -85,7 +63,7 @@ jobs:
         run: |
           zip -r -y -p SmartImageShrink_${{ env.VERSION }}.zip SmartImageShrink_${{ env.VERSION }}
       - name: Create and Upload Release
-        uses: softprops/action-gh-release@v4
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
           release_name: Release ${{ env.VERSION }}
