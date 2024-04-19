@@ -46,8 +46,10 @@ jobs:
         run: |
           mkdir -p SmartImageShrink
           cp -R dist/SmartImageShrink_v0.6.app SmartImageShrink/
+      - name: Check permissions
+        run: ls -l SmartImageShrink/SmartImageShrink_v0.6.app/Contents/MacOS/*
       - name: Tar the application to preserve permissions
-        run: tar -cvpf SmartImageShrink_v0.6.app.tar -C SmartImageShrink .
+        run: tar -cvf SmartImageShrink_v0.6.app.tar SmartImageShrink
       - name: Upload Tarred App as Artifact
         uses: actions/upload-artifact@v4
         with:
