@@ -119,6 +119,37 @@ jobs:
           name: SmartImageShrink_${{ env.VERSION }}_macOS_intel_x86_64
           path: SmartImageShrink_${{ env.VERSION }}_macOS_intel_x86_64.app.tar
 
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+      - name: Prepare .spec File
+        shell: pwsh
+        run: |
+          (Get-Content SmartImageShrink.spec) -replace 'SECRET_DEVELOPER_ID', '' -replace 'SmartImageShrink_TAGVERSION', 'SmartImageShrink_${{ env.VERSION }}' -replace 'OS_ARCHITECTURE', 'x86_64', -replace ['img/icon.png'], 'img\\icon.ico' | Set-Content SmartImageShrink.spec
+      - name: Bundle APP
+        run: pyinstaller SmartImageShrink.spec
+      - name: Prepare Directory with name of the app
+        run: |
+          New-Item -ItemType Directory -Path SmartImageShrink_${{ env.VERSION }}_win
+          Move-Item dist\SmartImageShrink_${{ env.VERSION }}.exe SmartImageShrink_${{ env.VERSION }}_win\SmartImageShrink_${{ env.VERSION }}.exe
+        shell: pwsh
+      - name: Zip the application to preserve permissions
+        shell: pwsh
+        run: Compress-Archive -Path SmartImageShrink_${{ env.VERSION }}_win\* -DestinationPath SmartImageShrink_${{ env.VERSION }}_win.zip
+      - name: Upload App as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartImageShrink_${{ env.VERSION }}_win
+          path: SmartImageShrink_${{ env.VERSION }}_win.zip
+
   release:
     needs: [build_macos_arm64, build_macos_x86_64x]
     runs-on: ubuntu-latest
