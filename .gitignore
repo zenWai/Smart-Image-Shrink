@@ -11,3 +11,6 @@ compress_images_windows.exe
 /main.spec
 /your_script.spec
 /pyinstaller.txt
+/SmartImageShrink_v0.4.spec
+/SmartImageShrink_v0.5.spec
+/save/
